@@ -13,8 +13,18 @@ import { AdminEventSelector } from "@/components/layout/admin-event-selector";
 import { CardGridSkeleton, EmptyState, ErrorAlert } from "@/components/feedback/states";
 import { ParticipantImpactReportView } from "@/features/reports/components/participant-impact-report-view";
 import { eventsApi, getReadableErrorMessage, reportsApi } from "@/lib/api";
-import { queryKeys, useEvents } from "@/hooks/use-queries";
 import {
+  queryKeys,
+  useEvents,
+  useQuestionCards,
+  useQuestions,
+} from "@/hooks/use-queries";
+import {
+  extractQualitativeFeedback,
+  useEventSubmissions,
+} from "@/hooks/use-admin-submissions";
+import {
+  downloadCsvRows,
   downloadJsonFile,
   formatDateTime,
   formatPercent,
@@ -51,6 +61,20 @@ export default function AdminReportsPage() {
       ).data,
     enabled: Boolean(selectedParticipantId),
   });
+
+  const submissionsQuery = useEventSubmissions(activeEventId || null, 25);
+  const questionsQuery = useQuestions({ include_archived: true });
+  const cardsQuery = useQuestionCards(true);
+
+  const feedbackItems = React.useMemo(
+    () =>
+      extractQualitativeFeedback(
+        submissionsQuery.data?.submissions ?? [],
+        questionsQuery.data ?? [],
+        cardsQuery.data ?? []
+      ),
+    [submissionsQuery.data, questionsQuery.data, cardsQuery.data]
+  );
 
   const exportEventMutation = useMutation({
     mutationFn: (format: ExportFormat) => reportsApi.exportEventReport(activeEventId, format),
@@ -201,6 +225,92 @@ export default function AdminReportsPage() {
                       )}
                     </p>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <CardTitle className="text-base">
+                      Targeted Anonymised CSV Downloads
+                    </CardTitle>
+                    <CardDescription>
+                      Export focused datasets directly from the loaded backend report &amp;
+                      qualitative feedback without exposing individual contact details.
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!eventReportQuery.data?.pillars?.pillars?.length}
+                    onClick={() =>
+                      downloadCsvRows(
+                        (eventReportQuery.data?.pillars.pillars ?? []).map((p) => ({
+                          pillar: p.pillar_name,
+                          impact_category: p.impact_category,
+                          default_weight: p.default_weight,
+                          average: p.average ?? "",
+                          median: p.median ?? "",
+                          min: p.min ?? "",
+                          max: p.max ?? "",
+                          response_count: p.response_count,
+                          missing_count: p.missing_count,
+                          coverage_level: p.data_coverage.coverage_level,
+                        })),
+                        `six-pillar-report-${activeEventId.slice(0, 8)}.csv`
+                      )
+                    }
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Six-Pillar Report CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={feedbackItems.length === 0}
+                    onClick={() =>
+                      downloadCsvRows(
+                        feedbackItems.map((f, idx) => ({
+                          respondent: `Participant #${idx + 1}`,
+                          industry: f.participantIndustry ?? "",
+                          role: f.participantRole ?? "",
+                          submitted_at: f.submittedAt ?? "",
+                          question: f.questionText,
+                          card: f.cardTitle ?? "",
+                          verbatim_response: f.answerText,
+                        })),
+                        `anonymised-feedback-report-${activeEventId.slice(0, 8)}.csv`
+                      )
+                    }
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Qualitative Feedback CSV (Anonymised)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!eventReportQuery.data?.follow_ups?.stages?.length}
+                    onClick={() =>
+                      downloadCsvRows(
+                        (eventReportQuery.data?.follow_ups.stages ?? []).map((st) => ({
+                          stage: st.follow_up_stage,
+                          scheduled: st.scheduled_count,
+                          completed: st.completed_count,
+                          pending: st.pending_count,
+                          overdue: st.overdue_count,
+                          completion_rate: st.completion_rate ?? "",
+                          reported_actions: st.reported_actions_count,
+                          coverage_level: st.data_coverage.coverage_level,
+                        })),
+                        `follow-up-report-${activeEventId.slice(0, 8)}.csv`
+                      )
+                    }
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Follow-Up Report CSV
+                  </Button>
                 </CardContent>
               </Card>
 

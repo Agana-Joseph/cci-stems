@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { CalendarClock, CheckCircle2, Plus } from "lucide-react";
+import { CalendarClock, CheckCircle2, Eye, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ import {
   CoverageBadge,
   EmptyState,
   ErrorAlert,
+  EvidenceBadge,
 } from "@/components/feedback/states";
 import { eventsApi, followupsApi, getReadableErrorMessage } from "@/lib/api";
 import { queryKeys, useEventAnalyticsBundle, useEvents } from "@/hooks/use-queries";
@@ -45,8 +46,11 @@ export default function AdminFollowUpsPage() {
   const [outcomeId, setOutcomeId] = React.useState("");
   const [verifyStatus, setVerifyStatus] = React.useState<VerificationStatus>("verified");
   const [verifyNotes, setVerifyNotes] = React.useState("");
+  const [inspectedFollowUp, setInspectedFollowUp] = React.useState<FollowUpRead | null>(null);
 
-  const { followUps: followUpAnalytics } = useEventAnalyticsBundle(activeEventId || null);
+  const { overview, followUps: followUpAnalytics } = useEventAnalyticsBundle(
+    activeEventId || null
+  );
 
   const followUpsListQuery = useQuery({
     queryKey: queryKeys.followUps({
@@ -172,6 +176,20 @@ export default function AdminFollowUpsPage() {
         );
       },
     },
+    {
+      id: "inspect",
+      header: "Submission",
+      cell: ({ row }) => (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setInspectedFollowUp(row.original)}
+        >
+          <Eye className="h-3.5 w-3.5" />
+          Inspect
+        </Button>
+      ),
+    },
   ];
 
   return (
@@ -202,6 +220,57 @@ export default function AdminFollowUpsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Immediate Event Baseline vs Longitudinal Follow-Ups */}
+      {overview.data && (
+        <Card className="border-primary/20 bg-primary/[0.02]">
+          <CardHeader className="pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <CardTitle className="text-base">
+                  Stage 0: Immediate Post-Event Assessment (Baseline)
+                </CardTitle>
+                <CardDescription>
+                  Separates what participants gained immediately at the event from sustained
+                  application measured at 30, 60, and 90 days.
+                </CardDescription>
+              </div>
+              <Badge variant="default">Immediate Baseline</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+            <div className="rounded-lg border border-border bg-card p-3">
+              <span className="text-muted-foreground">Eligible Registered</span>
+              <p className="mt-1 text-lg font-bold">
+                {overview.data.participation.total_registered ??
+                  overview.data.participation.registered_count ??
+                  0}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-3">
+              <span className="text-muted-foreground">Completed Immediate</span>
+              <p className="mt-1 text-lg font-bold text-emerald-700">
+                {overview.data.participation.completed_assessments ??
+                  overview.data.participation.assessment_submissions_count ??
+                  0}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-3">
+              <span className="text-muted-foreground">Immediate Completion</span>
+              <p className="mt-1 text-lg font-bold">
+                {formatPercent(overview.data.participation.assessment_completion_rate)}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-3">
+              <span className="text-muted-foreground">Verified / Documented Outcomes</span>
+              <p className="mt-1 text-lg font-bold">
+                {(overview.data.outcomes_summary?.verified ?? 0) +
+                  (overview.data.outcomes_summary?.documented ?? 0)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 30 / 60 / 90-Day Analytics Summary */}
       {followUpAnalytics.isLoading ? (
@@ -328,6 +397,103 @@ export default function AdminFollowUpsPage() {
               {scheduleMutation.isPending ? "Scheduling..." : "Schedule All Stages"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Individual Follow-Up Submission Inspection Dialog */}
+      <Dialog
+        open={Boolean(inspectedFollowUp)}
+        onOpenChange={(o) => !o && setInspectedFollowUp(null)}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {inspectedFollowUp
+                ? `${formatStageLabel(inspectedFollowUp.follow_up_stage)} — ${
+                    participantNameMap.get(inspectedFollowUp.participant_id) ??
+                    inspectedFollowUp.participant_id.slice(0, 8)
+                  }`
+                : "Follow-Up Submission"}
+            </DialogTitle>
+            <DialogDescription>
+              Status: {formatEnumLabel(inspectedFollowUp?.status)} &middot; Due:{" "}
+              {formatDate(inspectedFollowUp?.due_date)}
+            </DialogDescription>
+          </DialogHeader>
+
+          {inspectedFollowUp && (
+            <div className="space-y-4 text-sm">
+              {!inspectedFollowUp.submissions || inspectedFollowUp.submissions.length === 0 ? (
+                <EmptyState
+                  title="No submission recorded yet"
+                  description="This follow-up checkpoint has not been submitted by the participant yet."
+                />
+              ) : (
+                inspectedFollowUp.submissions.map((sub, idx) => (
+                  <div
+                    key={sub.id ?? idx}
+                    className="space-y-3 rounded-xl border border-border bg-muted/20 p-4"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        Submitted: {formatDate(sub.assessment_date || sub.created_at)}
+                      </span>
+                      <EvidenceBadge classification={sub.evidence_classification} />
+                    </div>
+
+                    {sub.outcome_descriptions && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground">
+                          Reported Outcome ({formatEnumLabel(sub.outcome_type)})
+                        </p>
+                        <p className="mt-1 whitespace-pre-wrap text-foreground">
+                          {sub.outcome_descriptions}
+                        </p>
+                      </div>
+                    )}
+
+                    {sub.reported_actions && sub.reported_actions.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground">
+                          Reported Actions ({sub.reported_actions.length})
+                        </p>
+                        <ul className="mt-1 space-y-1 text-xs">
+                          {sub.reported_actions.map((act, i) => (
+                            <li
+                              key={i}
+                              className="rounded border border-border bg-card px-2.5 py-1.5"
+                            >
+                              {String(act.description ?? JSON.stringify(act))}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {sub.responses && Object.keys(sub.responses).length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground">
+                          Questionnaire Responses
+                        </p>
+                        <div className="mt-1 space-y-1.5 text-xs">
+                          {Object.entries(sub.responses).map(([k, v]) => (
+                            <div key={k} className="rounded border border-border bg-card p-2">
+                              <span className="font-mono text-[11px] text-muted-foreground">
+                                {k}:{" "}
+                              </span>
+                              <span className="text-foreground">
+                                {typeof v === "object" ? JSON.stringify(v) : String(v)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

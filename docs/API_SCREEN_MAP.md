@@ -22,7 +22,9 @@
 | `/admin/question-cards` | Admin Proxy | `GET/POST /api/v1/question-cards`, `PATCH /api/v1/question-cards/{id}`, `POST /api/v1/question-cards/{id}/questions` |
 | `/admin/questions` | Admin Proxy | `GET/POST /api/v1/questions`, `PATCH /api/v1/questions/{id}`, `PATCH /api/v1/questions/{id}/archive`, `GET /api/v1/pillars` |
 | `/admin/questionnaires` | Admin Proxy | `GET/POST /api/v1/questionnaires`, `GET /api/v1/questionnaires/{id}`, `POST /api/v1/questionnaires/{id}/publish` |
-| `/admin/assessments` | Admin Proxy | `GET /api/v1/analytics/events/{id}/overview`, `GET /api/v1/analytics/events/{id}/pillars`, `GET /api/v1/participants/{id}/assessments`, `GET /api/v1/assessments/{id}` |
+| `/admin/assessments` | Admin Proxy | `GET /api/v1/analytics/events/{id}/overview`, `GET /api/v1/events/{id}/participants`, `GET /api/v1/participants/{id}/assessments`, `GET /api/v1/questionnaires` |
+| `/admin/assessments/[assessmentId]` | Admin Proxy | `GET /api/v1/assessments/{id}`, `GET /api/v1/questionnaires/{id}`, `GET /api/v1/participants/{id}`, `GET /api/v1/events/{id}`, `GET /api/v1/pillars`, `GET /api/v1/question-cards` |
+| `/admin/feedback` | Admin Proxy | `GET /api/v1/events/{id}/participants`, `GET /api/v1/participants/{id}/assessments`, `GET /api/v1/questions`, `GET /api/v1/question-cards`, `GET /api/v1/pillars` |
 | `/admin/scoring` | Admin Proxy | `GET /api/v1/pillars`, `GET/POST /api/v1/scoring/frameworks`, `GET /api/v1/scoring/events/{id}`, `POST /api/v1/scoring/calculate-event/{id}` |
 | `/admin/networking` | Admin Proxy | `GET /api/v1/analytics/events/{id}/networking` |
 | `/admin/follow-ups` | Admin Proxy | `GET /api/v1/analytics/events/{id}/follow-ups`, `GET/POST /api/v1/follow-ups`, `PATCH /api/v1/impact/outcomes/{id}/verify` |

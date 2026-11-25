@@ -1,68 +1,175 @@
 "use client";
 
 import * as React from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { ClipboardCheck, Search } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { ColumnDef } from "@tanstack/react-table";
+import { ClipboardCheck, ExternalLink, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input, Label, NativeSelect } from "@/components/ui/form-controls";
+import { Input, NativeSelect } from "@/components/ui/form-controls";
+import { DataTable } from "@/components/tables/data-table";
 import { AdminEventSelector } from "@/components/layout/admin-event-selector";
 import { KpiCard } from "@/components/charts/kpi-card";
-import { CardGridSkeleton, EmptyState, ErrorAlert } from "@/components/feedback/states";
-import { assessmentsApi, eventsApi } from "@/lib/api";
-import { queryKeys, useEventAnalyticsBundle, useEvents } from "@/hooks/use-queries";
-import { formatDateTime, formatPercent } from "@/lib/utils/format";
-import type { AssessmentSubmissionRead } from "@/types/api";
+import { CardGridSkeleton, ErrorAlert } from "@/components/feedback/states";
+import { useEventAnalyticsBundle, useEvents, useQuestionnaires } from "@/hooks/use-queries";
+import { useEventSubmissions, type EnrichedSubmission } from "@/hooks/use-admin-submissions";
+import { formatDateTime, formatEnumLabel, formatPercent } from "@/lib/utils/format";
 
 export default function AdminAssessmentsPage() {
+  const router = useRouter();
   const eventsQuery = useEvents({ limit: 50 });
   const [selectedEventId, setSelectedEventId] = React.useState("");
   const activeEventId = selectedEventId || eventsQuery.data?.[0]?.id || "";
+  const activeEvent = (eventsQuery.data ?? []).find((e) => e.id === activeEventId);
 
-  const [selectedParticipantId, setSelectedParticipantId] = React.useState("");
-  const [lookupAssessmentId, setLookupAssessmentId] = React.useState("");
-  const [inspectedSubmission, setInspectedSubmission] =
-    React.useState<AssessmentSubmissionRead | null>(null);
+  const [batchSize, setBatchSize] = React.useState(25);
+  const [statusFilter, setStatusFilter] = React.useState("");
+  const [typeFilter, setTypeFilter] = React.useState("");
+  const [industryFilter, setIndustryFilter] = React.useState("");
+  const [directAssessmentId, setDirectAssessmentId] = React.useState("");
 
-  const { overview, pillars } = useEventAnalyticsBundle(activeEventId || null);
+  const { overview } = useEventAnalyticsBundle(activeEventId || null);
+  const submissionsQuery = useEventSubmissions(activeEventId || null, batchSize);
+  const questionnairesQuery = useQuestionnaires();
 
-  const participantsQuery = useQuery({
-    queryKey: queryKeys.eventParticipants(activeEventId, 200, 0),
-    queryFn: async () =>
-      (await eventsApi.listParticipants(activeEventId, { limit: 200, offset: 0 })).data,
-    enabled: Boolean(activeEventId),
-  });
+  const questionnaireMap = React.useMemo(() => {
+    const map = new Map<string, { title: string; type: string }>();
+    (questionnairesQuery.data ?? []).forEach((q) => {
+      map.set(q.id, { title: q.title, type: q.questionnaire_type });
+    });
+    return map;
+  }, [questionnairesQuery.data]);
 
-  const participantAssessmentsQuery = useQuery({
-    queryKey: ["participants", selectedParticipantId, "assessments", activeEventId],
-    queryFn: async () =>
-      (
-        await assessmentsApi.listByParticipant(selectedParticipantId, {
-          event_id: activeEventId || undefined,
-        })
-      ).data,
-    enabled: Boolean(selectedParticipantId),
-  });
+  const industries = React.useMemo(() => {
+    const set = new Set<string>();
+    (submissionsQuery.data?.submissions ?? []).forEach((s) => {
+      if (s.participant.industry) set.add(s.participant.industry);
+    });
+    return Array.from(set).sort();
+  }, [submissionsQuery.data]);
 
-  const lookupByIdMutation = useMutation({
-    mutationFn: (id: string) => assessmentsApi.get(id.trim()),
-    onSuccess: (res) => setInspectedSubmission(res.data),
-  });
+  const filteredSubmissions = React.useMemo(() => {
+    return (submissionsQuery.data?.submissions ?? []).filter((sub) => {
+      if (statusFilter && sub.status !== statusFilter) return false;
+      if (industryFilter && sub.participant.industry !== industryFilter) return false;
+      if (typeFilter) {
+        const qInfo = questionnaireMap.get(sub.questionnaire_id);
+        if (!qInfo || qInfo.type !== typeFilter) return false;
+      }
+      return true;
+    });
+  }, [submissionsQuery.data, statusFilter, industryFilter, typeFilter, questionnaireMap]);
 
   const part = overview.data?.participation;
   const totalRegistered = part?.total_registered ?? part?.registered_count ?? 0;
   const completed = part?.completed_assessments ?? part?.assessment_submissions_count ?? 0;
-  const incomplete = Math.max(0, totalRegistered - completed);
+  const pending = Math.max(0, totalRegistered - completed);
+
+  const columns: ColumnDef<EnrichedSubmission>[] = [
+    {
+      accessorFn: (row) => row.participant.full_name,
+      id: "participant",
+      header: "Participant",
+      cell: ({ row }) => (
+        <div>
+          <Link
+            href={`/admin/participants/${row.original.participant_id}`}
+            className="font-semibold text-foreground hover:text-primary hover:underline"
+          >
+            {row.original.participant.full_name}
+          </Link>
+          <p className="text-xs text-muted-foreground">
+            {[row.original.participant.current_role, row.original.participant.industry]
+              .filter(Boolean)
+              .join(" · ") || "Attendee"}
+          </p>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "questionnaire_id",
+      header: "Assessment Type",
+      cell: ({ row }) => {
+        const qInfo = questionnaireMap.get(row.original.questionnaire_id);
+        return (
+          <div className="space-y-0.5">
+            <Badge variant="outline">
+              {qInfo ? formatEnumLabel(qInfo.type) : "Assessment"}
+            </Badge>
+            {qInfo && (
+              <p className="max-w-[200px] truncate text-xs text-muted-foreground">{qInfo.title}</p>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "submitted_at",
+      header: "Submission Date",
+      cell: ({ row }) => (
+        <span className="whitespace-nowrap text-xs text-muted-foreground">
+          {formatDateTime(row.original.submitted_at)}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <Badge
+          variant={
+            row.original.status === "submitted" || row.original.status === "validated"
+              ? "success"
+              : "warning"
+          }
+          className="capitalize"
+        >
+          {formatEnumLabel(row.original.status)}
+        </Badge>
+      ),
+    },
+    {
+      id: "event",
+      header: "Event",
+      cell: () => (
+        <span className="text-xs text-muted-foreground">{activeEvent?.title ?? "—"}</span>
+      ),
+    },
+    {
+      id: "responses",
+      header: "Responses",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">{row.original.responses?.length ?? 0}</span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Review",
+      cell: ({ row }) => (
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/admin/assessments/${row.original.id}`}>
+            View Details
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
+      ),
+    },
+  ];
+
+  const hasMoreParticipants =
+    submissionsQuery.data &&
+    submissionsQuery.data.totalParticipants > submissionsQuery.data.inspectedParticipantCount;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Assessments</h1>
+          <h1 className="font-display text-2xl font-bold text-foreground">Assessment Review</h1>
           <p className="text-sm text-muted-foreground">
-            Monitor submission completion rates, pillar response coverage, and inspect individual
-            submissions.
+            Browse, filter, and open individual participant assessment submissions organised by
+            questionnaire sections.
           </p>
         </div>
         <AdminEventSelector
@@ -80,7 +187,7 @@ export default function AdminAssessmentsPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard label="Total Submissions" value={completed} icon={ClipboardCheck} />
           <KpiCard label="Completed Assessments" value={completed} />
-          <KpiCard label="Pending / Incomplete" value={incomplete} subtitle="Registered without submission" />
+          <KpiCard label="Pending Assessments" value={pending} subtitle="Registered without submission" />
           <KpiCard
             label="Completion Rate"
             value={formatPercent(part?.assessment_completion_rate)}
@@ -90,163 +197,110 @@ export default function AdminAssessmentsPage() {
         </div>
       )}
 
-      {/* Responses by Pillar */}
+      {/* Direct Assessment UUID Jump */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Responses by Measurement Pillar</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Open Assessment Directly by ID</CardTitle>
           <CardDescription>
-            Number of valid responses and missing entries per pillar across the selected event.
+            Paste any assessment submission UUID to inspect its full section-by-section responses.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!pillars.data?.pillars || pillars.data.pillars.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No pillar response data recorded yet.</p>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {pillars.data.pillars.map((p) => (
-                <div key={p.pillar_id} className="rounded-lg border border-border bg-muted/20 p-4">
-                  <p className="text-sm font-semibold">{p.pillar_name}</p>
-                  <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Responses: {p.response_count}</span>
-                    <span>Missing: {p.missing_count}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <form
+            className="flex flex-col gap-2 sm:flex-row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (directAssessmentId.trim()) {
+                router.push(`/admin/assessments/${encodeURIComponent(directAssessmentId.trim())}`);
+              }
+            }}
+          >
+            <Input
+              value={directAssessmentId}
+              onChange={(e) => setDirectAssessmentId(e.target.value)}
+              placeholder="Paste assessment UUID..."
+              className="sm:max-w-md"
+            />
+            <Button type="submit" variant="secondary" disabled={!directAssessmentId.trim()}>
+              <Search className="h-4 w-4" />
+              Open Submission
+            </Button>
+          </form>
         </CardContent>
       </Card>
 
-      {/* Inspect Individual Submissions */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Inspect by Participant</CardTitle>
-            <CardDescription>
-              Select an event participant to review their submitted responses via{" "}
-              <code className="font-mono text-xs">/participants/&#123;id&#125;/assessments</code>.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="inspect-participant">Participant</Label>
-              <NativeSelect
-                id="inspect-participant"
-                value={selectedParticipantId}
-                onChange={(e) => setSelectedParticipantId(e.target.value)}
-              >
-                <option value="">Select a participant...</option>
-                {(participantsQuery.data ?? []).map((p) => (
-                  <option key={p.participant_id} value={p.participant_id}>
-                    {p.full_name} ({p.industry || "General"})
-                  </option>
-                ))}
-              </NativeSelect>
-            </div>
+      {submissionsQuery.isError && (
+        <ErrorAlert
+          error={submissionsQuery.error}
+          onRetry={() => submissionsQuery.refetch()}
+        />
+      )}
 
-            {participantAssessmentsQuery.isError && (
-              <ErrorAlert error={participantAssessmentsQuery.error} />
-            )}
+      <DataTable
+        columns={columns}
+        data={filteredSubmissions}
+        isLoading={submissionsQuery.isLoading}
+        searchPlaceholder="Search by participant name, role, or status..."
+        emptyTitle="No assessment submissions found"
+        emptyDescription="Submitted participant assessments for this event will appear here automatically."
+        toolbarExtra={
+          <>
+            <NativeSelect
+              aria-label="Filter by assessment type"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="h-9 w-36 text-xs"
+            >
+              <option value="">All Types</option>
+              <option value="post_event">Post-Event</option>
+              <option value="follow_up">Follow-Up</option>
+              <option value="reflection">Reflection</option>
+              <option value="custom">Custom</option>
+            </NativeSelect>
+            <NativeSelect
+              aria-label="Filter by status"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-9 w-36 text-xs"
+            >
+              <option value="">All Statuses</option>
+              <option value="submitted">Submitted</option>
+              <option value="validated">Validated</option>
+              <option value="in_progress">In Progress</option>
+            </NativeSelect>
+            <NativeSelect
+              aria-label="Filter by industry"
+              value={industryFilter}
+              onChange={(e) => setIndustryFilter(e.target.value)}
+              className="h-9 w-40 text-xs"
+            >
+              <option value="">All Industries</option>
+              {industries.map((ind) => (
+                <option key={ind} value={ind}>
+                  {ind}
+                </option>
+              ))}
+            </NativeSelect>
+          </>
+        }
+      />
 
-            {selectedParticipantId &&
-              !participantAssessmentsQuery.isLoading &&
-              (participantAssessmentsQuery.data?.length ?? 0) === 0 && (
-                <EmptyState
-                  title="No submissions for this participant"
-                  description="This participant has not submitted an assessment for the selected event."
-                />
-              )}
-
-            {(participantAssessmentsQuery.data ?? []).map((sub) => (
-              <div
-                key={sub.id}
-                className="flex items-center justify-between rounded-lg border border-border p-3"
-              >
-                <div>
-                  <p className="font-mono text-xs font-medium">{sub.id}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDateTime(sub.submitted_at)}
-                  </p>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => setInspectedSubmission(sub)}>
-                  Inspect
-                </Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Lookup by Assessment ID</CardTitle>
-            <CardDescription>
-              Fetch a specific submission record directly via{" "}
-              <code className="font-mono text-xs">GET /api/v1/assessments/&#123;id&#125;</code>.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                value={lookupAssessmentId}
-                onChange={(e) => setLookupAssessmentId(e.target.value)}
-                placeholder="Paste assessment UUID..."
-              />
-              <Button
-                disabled={!lookupAssessmentId.trim() || lookupByIdMutation.isPending}
-                onClick={() => lookupByIdMutation.mutate(lookupAssessmentId)}
-              >
-                <Search className="h-4 w-4" />
-                Lookup
-              </Button>
-            </div>
-            {lookupByIdMutation.isError && <ErrorAlert error={lookupByIdMutation.error} />}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Inspected Submission Detail */}
-      {inspectedSubmission && (
-        <Card className="border-primary/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <div>
-              <CardTitle className="text-base">
-                Submission Detail ({inspectedSubmission.id.slice(0, 8)}...)
-              </CardTitle>
-              <CardDescription>
-                Submitted {formatDateTime(inspectedSubmission.submitted_at)} &middot; Channel:{" "}
-                {inspectedSubmission.submission_channel ?? "web_portal"}
-              </CardDescription>
-            </div>
-            <Badge variant="success" className="capitalize">
-              {inspectedSubmission.status}
-            </Badge>
-          </CardHeader>
-          <CardContent className="divide-y divide-border text-sm">
-            {(inspectedSubmission.responses ?? []).map((resp) => (
-              <div key={resp.id} className="py-3">
-                <p className="text-xs text-muted-foreground">
-                  {resp.question_text || resp.question_code || resp.question_id}
-                </p>
-                <p className="mt-1 font-medium">
-                  {resp.response_text ??
-                    (resp.response_numeric !== null && resp.response_numeric !== undefined
-                      ? String(resp.response_numeric)
-                      : typeof resp.response_boolean === "boolean"
-                        ? resp.response_boolean
-                          ? "Yes"
-                          : "No"
-                        : resp.response_date ??
-                          (resp.response_json ? JSON.stringify(resp.response_json) : "—"))}
-                </p>
-                {resp.explanation_text && (
-                  <p className="mt-1 text-xs italic text-muted-foreground">
-                    Explanation: {resp.explanation_text}
-                  </p>
-                )}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+      {hasMoreParticipants && (
+        <div className="flex flex-col items-center justify-between gap-2 rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground sm:flex-row">
+          <span>
+            Loaded submissions from the first{" "}
+            <strong>{submissionsQuery.data?.inspectedParticipantCount}</strong> of{" "}
+            <strong>{submissionsQuery.data?.totalParticipants}</strong> event participants to stay
+            within backend rate limits.
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setBatchSize((prev) => Math.min(prev + 25, 100))}
+          >
+            Load More Participants
+          </Button>
+        </div>
       )}
     </div>
   );

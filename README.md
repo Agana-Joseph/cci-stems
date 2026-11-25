@@ -17,20 +17,16 @@ The application provides two clearly separated experiences connected to the Fast
 - `/impact-report` — Verification-gated personal impact report view
 
 ### 2. Administration Dashboard (Desktop-Optimised, Responsive)
-- `/admin` — Impact Overview KPIs & six-pillar averages with sample size & data coverage badges
-- `/admin/events` & `/admin/events/[eventId]` — Event management, roster, and score calculation trigger
-- `/admin/participants` & `/admin/participants/[participantId]` — Searchable roster, phone masking toggle, 2-step CSV/Excel import (`dry_run=true` preview → confirm), and participant impact detail view
-- `/admin/attendance` — Separate registration vs attendance management with inline upsert
+- `/admin` — Event Intelligence Overview (KPIs, 6-pillar chart & cards, recent submissions, recent feedback, 30/60/90 follow-up status)
+- `/admin/participants` & `/admin/participants/[participantId]` — Searchable roster with Organisation & Assessment status, phone masking toggle, 2-step CSV/Excel import (`dry_run=true` → confirm), and full participant impact detail view
+- `/admin/assessments` & `/admin/assessments/[assessmentId]` — Searchable submission directory & full section-organised verbatim assessment review
+- `/admin/feedback` — Dedicated qualitative feedback & reflective Question Card review hub with filters, recurring themes, and anonymised CSV export
 - `/admin/question-cards` — Reflective card management, question creation, and live preview
-- `/admin/questions` — Question Bank with pillar mapping, answer options, and soft-archiving
-- `/admin/questionnaires` — Section/question builder, reordering, live preview, and publishing
-- `/admin/assessments` — Completion metrics, pillar coverage, and individual submission inspection
-- `/admin/scoring` — Six-pillar weights, versioned scoring frameworks, and calculation history
+- `/admin/analytics` — Six-pillar statistical summary & lazy-loaded Recharts analytics dashboard
 - `/admin/networking` — Aggregated networking outcomes & evidence charts
-- `/admin/follow-ups` — 30/60/90-day tracking, bulk scheduling, and outcome verification
-- `/admin/analytics` — Lazy-loaded Recharts analytics dashboard across all backend analytics endpoints
-- `/admin/reports` — Event & participant report previews and JSON/CSV/Excel exports
-- `/admin/settings` — Backend health check and supported configuration endpoints only
+- `/admin/follow-ups` — Immediate baseline vs 30/60/90-day tracking, individual submission inspection, bulk scheduling, and outcome verification
+- `/admin/reports` — Event & participant report previews, backend JSON/CSV/XLSX exports, and targeted anonymised CSV downloads
+- `/admin/events`, `/admin/events/[eventId]`, `/admin/attendance`, `/admin/questions`, `/admin/questionnaires`, `/admin/scoring`, `/admin/settings` — Operations, instrument design, scoring configuration, and supported settings
 
 ## Security Model & Deployment Restriction
 
@@ -76,4 +72,5 @@ The application provides two clearly separated experiences connected to the Fast
 
 ## Documentation
 
+- [Admin Panel API Integration Assessment](docs/ADMIN_API_ASSESSMENT.md)
 - [Screen-to-API Map & Backend Gap Tracker](docs/API_SCREEN_MAP.md)

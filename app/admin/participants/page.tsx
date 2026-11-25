@@ -35,6 +35,7 @@ import { ErrorAlert } from "@/components/feedback/states";
 import { participantCreateSchema } from "@/lib/validation/schemas";
 import { eventsApi, getReadableErrorMessage, participantsApi } from "@/lib/api";
 import { queryKeys, useEvents } from "@/hooks/use-queries";
+import { useEventSubmissions } from "@/hooks/use-admin-submissions";
 import { downloadCsvRows, maskPhoneNumber } from "@/lib/utils/format";
 import type { EventParticipantSummary, ParticipantImportResult } from "@/types/api";
 
@@ -61,6 +62,16 @@ export default function AdminParticipantsPage() {
       (await eventsApi.listParticipants(activeEventId, { limit: 500, offset: 0 })).data,
     enabled: Boolean(activeEventId),
   });
+
+  const submissionsQuery = useEventSubmissions(activeEventId || null, 25);
+
+  const submissionByParticipant = React.useMemo(() => {
+    const map = new Map<string, string>();
+    (submissionsQuery.data?.submissions ?? []).forEach((s) => {
+      if (!map.has(s.participant_id)) map.set(s.participant_id, s.id);
+    });
+    return map;
+  }, [submissionsQuery.data]);
 
   const industries = React.useMemo(() => {
     const set = new Set<string>();
@@ -191,13 +202,9 @@ export default function AdminParticipantsPage() {
       cell: ({ row }) => row.original.industry || "—",
     },
     {
-      accessorKey: "registration_status",
-      header: "Registration",
-      cell: ({ row }) => (
-        <Badge variant="outline" className="capitalize">
-          {row.original.registration_status || "registered"}
-        </Badge>
-      ),
+      accessorKey: "organisation",
+      header: "Organisation",
+      cell: ({ row }) => row.original.organisation || "—",
     },
     {
       accessorKey: "attendance_status",
@@ -214,6 +221,23 @@ export default function AdminParticipantsPage() {
             {st}
           </Badge>
         );
+      },
+    },
+    {
+      id: "assessment_status",
+      header: "Assessment",
+      cell: ({ row }) => {
+        const subId = submissionByParticipant.get(row.original.participant_id);
+        if (subId) {
+          return (
+            <Link href={`/admin/assessments/${subId}`}>
+              <Badge variant="success" className="cursor-pointer hover:opacity-85">
+                Submitted
+              </Badge>
+            </Link>
+          );
+        }
+        return <Badge variant="secondary">Pending</Badge>;
       },
     },
   ];
