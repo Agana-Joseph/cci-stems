@@ -15,6 +15,7 @@ import {
 import { useAssessmentContext } from "@/features/assessments/context/assessment-context";
 import { useQuestionCards, useQuestionnaire } from "@/hooks/use-queries";
 import { assessmentsApi, getReadableErrorMessage } from "@/lib/api";
+import { formatSectionTitle } from "@/lib/utils/format";
 
 export default function AssessmentReviewPage() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function AssessmentReviewPage() {
     return sortedSections
       .map((sec) => ({
         id: sec.id,
-        title: sec.title,
+        title: formatSectionTitle(sec.title),
         items: sortedQuestions.filter((q) => q.section_id === sec.id),
       }))
       .filter((g) => g.items.length > 0);

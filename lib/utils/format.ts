@@ -74,6 +74,14 @@ export function formatEnumLabel(value?: string | null): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+export function formatSectionTitle(title: string): string {
+  const cleaned = title
+    .replace(/^\s*(?:section|part)\s+[a-z0-9]+(?:\s*(?:—|–|-|:|\.)\s*|\s+)/i, "")
+    .replace(/^\s*(?:—|–|-)\s*/, "")
+    .trim();
+  return cleaned || title.trim();
+}
+
 export function downloadJsonFile(data: unknown, filename: string): void {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   triggerBlobDownload(blob, filename);

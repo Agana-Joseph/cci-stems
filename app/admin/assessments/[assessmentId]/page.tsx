@@ -18,7 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CardGridSkeleton, EmptyState, ErrorAlert } from "@/components/feedback/states";
 import { assessmentsApi, participantsApi } from "@/lib/api";
 import { useEvent, usePillars, useQuestionCards, useQuestionnaire } from "@/hooks/use-queries";
-import { formatDate, formatDateTime, formatEnumLabel } from "@/lib/utils/format";
+import { formatDate, formatDateTime, formatEnumLabel, formatSectionTitle } from "@/lib/utils/format";
 import type {
   AssessmentResponseRead,
   MeasurementPillarRead,
@@ -158,7 +158,7 @@ export default function AdminAssessmentDetailPage() {
           if (secRows.length > 0) {
             groups.push({
               id: sec.id,
-              title: sec.title,
+              title: formatSectionTitle(sec.title),
               description: sec.description,
               rows: secRows,
             });

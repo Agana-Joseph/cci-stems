@@ -22,6 +22,7 @@ import {
 } from "@/hooks/use-queries";
 import { useAssessmentContext } from "@/features/assessments/context/assessment-context";
 import { buildProfilePrefillMap } from "@/features/assessments/utils/profile-autofill";
+import { formatSectionTitle } from "@/lib/utils/format";
 import type { QuestionnaireQuestionItem, QuestionnaireSectionRead } from "@/types/api";
 
 interface SectionGroup {
@@ -117,7 +118,7 @@ export default function AssessmentQuestionsPage() {
     const groups: SectionGroup[] = sortedSections
       .map((sec) => ({
         id: sec.id,
-        title: sec.title,
+        title: formatSectionTitle(sec.title),
         description: sec.description,
         items: sortedQuestions.filter((item) => item.section_id === sec.id),
       }))
