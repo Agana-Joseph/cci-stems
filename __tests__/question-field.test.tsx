@@ -38,11 +38,11 @@ const multiChoiceQuestion: QuestionRead = {
 };
 
 describe("Dynamic QuestionField", () => {
-  it("maps rating_scale selections to response_numeric and supports explanation_text", () => {
+  it("maps rating_scale slider and stepper controls to response_numeric and supports explanation_text", () => {
     const onChange = vi.fn();
     render(<QuestionField question={ratingQuestion} required onChange={onChange} />);
 
-    fireEvent.click(screen.getByRole("radio", { name: "5" }));
+    fireEvent.change(screen.getByRole("slider"), { target: { value: "5" } });
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
         question_id: "q-rating",

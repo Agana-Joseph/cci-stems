@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Minus, Plus } from "lucide-react";
 import { Input, Label, Textarea } from "@/components/ui/form-controls";
 import { Badge } from "@/components/ui/badge";
 import type { AssessmentResponseInput, QuestionRead } from "@/types/api";
@@ -267,58 +268,134 @@ export function QuestionField({
       case "rating_scale": {
         const min = typeof question.validation_config?.min === "number" ? question.validation_config.min : 1;
         const max = typeof question.validation_config?.max === "number" ? question.validation_config.max : 5;
-        const scaleValues: number[] = [];
-        for (let i = min; i <= max; i++) scaleValues.push(i);
+        const span = Math.max(1, max - min);
+        const hasValue =
+          typeof current.response_numeric === "number" && !Number.isNaN(current.response_numeric);
+        const clampedValue = hasValue
+          ? Math.min(max, Math.max(min, current.response_numeric!))
+          : min;
+        const thumbPercent = hasValue ? ((clampedValue - min) / span) * 100 : 0;
+
+        const getLabelFor = (val: number): string | undefined => {
+          const raw = activeOptions.find((o) => o.option_value === String(val))?.option_label;
+          return raw ? formatRatingOptionLabel(raw) : undefined;
+        };
+
+        const selectedLabel = hasValue ? getLabelFor(clampedValue) : undefined;
+        const minLabel = getLabelFor(min) ?? "Lowest";
+        const maxLabel = getLabelFor(max) ?? "Highest";
+
+        const handleDecrease = () => {
+          const next = hasValue ? Math.max(min, clampedValue - 1) : min;
+          update({ response_numeric: next });
+        };
+
+        const handleIncrease = () => {
+          const next = hasValue ? Math.min(max, clampedValue + 1) : min;
+          update({ response_numeric: next });
+        };
 
         return (
-          <div className="space-y-2">
-            <div
-              className="grid gap-2"
-              style={{ gridTemplateColumns: `repeat(${Math.min(scaleValues.length, 10)}, minmax(0, 1fr))` }}
-              role="radiogroup"
-              aria-labelledby={`${fieldId}-label`}
-            >
-              {scaleValues.map((num) => {
-                const active = current.response_numeric === num;
-                const rawOptLabel = activeOptions.find(
-                  (o) => o.option_value === String(num)
-                )?.option_label;
-                const optLabel = rawOptLabel ? formatRatingOptionLabel(rawOptLabel) : undefined;
-                return (
-                  <button
-                    key={num}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    onClick={() => update({ response_numeric: num })}
-                    className={cn(
-                      "flex flex-col items-center justify-center rounded-lg border px-2 py-3 text-center transition-all focus-ring",
-                      active
-                        ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                        : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-muted/40"
-                    )}
-                  >
-                    <span className="text-base font-semibold">{num}</span>
-                    {optLabel && (
-                      <span
-                        className={cn(
-                          "mt-0.5 line-clamp-2 text-[11px]",
-                          active ? "text-primary-foreground/90" : "text-muted-foreground"
-                        )}
-                      >
-                        {optLabel}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                  hasValue
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                {hasValue
+                  ? (selectedLabel ?? "Selected")
+                  : "Slide the bar or use − / + to select"}
+              </span>
             </div>
-            {activeOptions.length === 0 && (
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Lowest</span>
-                <span>Highest</span>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleDecrease}
+                disabled={hasValue && clampedValue <= min}
+                aria-label="Decrease rating"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:border-primary/50 hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-40 focus-ring"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+
+              <div className="relative flex h-9 flex-1 items-center rounded-full focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                {/* Visual bar track */}
+                <div className="relative h-3.5 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-150"
+                    style={{
+                      width: hasValue ? `${thumbPercent}%` : "0%",
+                      minWidth: hasValue ? "14px" : "0px",
+                    }}
+                  />
+                </div>
+
+                {/* Visual draggable knob */}
+                <div
+                  aria-hidden="true"
+                  className={cn(
+                    "pointer-events-none absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 shadow-sm transition-all duration-150",
+                    hasValue
+                      ? "border-primary bg-card ring-2 ring-primary/20"
+                      : "border-muted-foreground/40 bg-card"
+                  )}
+                  style={{ left: `${thumbPercent}%` }}
+                />
+
+                {/* Interactive native range input overlay */}
+                <input
+                  id={fieldId}
+                  type="range"
+                  min={min}
+                  max={max}
+                  step={1}
+                  value={clampedValue}
+                  aria-labelledby={`${fieldId}-label`}
+                  aria-valuetext={selectedLabel ?? "Not selected"}
+                  aria-invalid={Boolean(error)}
+                  onChange={(e) => update({ response_numeric: Number(e.target.value) })}
+                  onPointerUp={(e) => {
+                    if (!hasValue) {
+                      update({ response_numeric: Number(e.currentTarget.value) });
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (
+                      !hasValue &&
+                      (e.key === "ArrowLeft" ||
+                        e.key === "ArrowRight" ||
+                        e.key === "ArrowUp" ||
+                        e.key === "ArrowDown" ||
+                        e.key === "Enter" ||
+                        e.key === " ")
+                    ) {
+                      update({ response_numeric: Number(e.currentTarget.value) });
+                    }
+                  }}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                />
               </div>
-            )}
+
+              <button
+                type="button"
+                onClick={handleIncrease}
+                disabled={hasValue && clampedValue >= max}
+                aria-label="Increase rating"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:border-primary/50 hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-40 focus-ring"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 px-12 text-xs text-muted-foreground">
+              <span>{minLabel}</span>
+              <span className="text-right">{maxLabel}</span>
+            </div>
           </div>
         );
       }
