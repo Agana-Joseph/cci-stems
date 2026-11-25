@@ -9,7 +9,6 @@ import {
   ChevronRight,
   ClipboardCheck,
   ClipboardList,
-  Compass,
   FileBarChart2,
   HelpCircle,
   LayoutDashboard,
@@ -29,6 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
+import { CciLogo } from "@/components/ui/cci-logo";
 
 interface NavItem {
   href: string;
@@ -180,9 +180,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           )}
         >
           <Link href="/admin" className="flex items-center gap-2.5 overflow-hidden">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Compass className="h-4 w-4" />
-            </div>
+            <CciLogo size="sm" />
             {!collapsed && (
               <div className="min-w-0 leading-tight">
                 <p className="truncate font-display text-sm font-bold text-foreground">
@@ -274,9 +272,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <aside className="fixed inset-y-0 left-0 flex w-72 flex-col bg-card shadow-elevated">
             <div className="flex h-16 items-center justify-between border-b border-border px-4">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Compass className="h-4 w-4" />
-                </div>
+                <CciLogo size="sm" />
                 <span className="font-display text-sm font-bold">CCI STEM Admin</span>
               </div>
               <Button

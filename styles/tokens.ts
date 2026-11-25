@@ -1,11 +1,7 @@
 /**
  * CCI STEM Connect Design Tokens
  * @author JoJeGa
- * Restrained institutional analytics palette:
- * - Deep navy / slate charcoal for primary text
- * - Pure white & cool neutral slate surfaces
- * - Confident teal-blue primary action
- * - Emerald green (progress), Amber (pending), Crimson (error)
+ * Branded around CCI Crimson (#D41B23), Obsidian Charcoal (#111827), and Crisp Neutral Surfaces.
  */
 export const BRAND_TRADEMARK = "JoJeGa" as const;
 
@@ -16,50 +12,51 @@ export const designTokens = {
   },
   colors: {
     brand: {
-      navy: "#0F172A",
-      slate: "#1E293B",
-      primary: "#0E5A78",
-      primaryHover: "#0B4861",
-      primarySoft: "#E6F3F8",
-      teal: "#0F766E",
+      navy: "#111827",
+      slate: "#1F2937",
+      primary: "#D41B23",
+      primaryHover: "#B5151C",
+      primaryDeep: "#8E1117",
+      primarySoft: "#FDF2F2",
+      teal: "#1E293B",
     },
     neutral: {
-      canvas: "#F8FAFC",
+      canvas: "#F9FAFB",
       surface: "#FFFFFF",
-      subtle: "#F1F5F9",
-      border: "#E2E8F0",
-      borderStrong: "#CBD5E1",
-      textPrimary: "#0F172A",
-      textSecondary: "#475569",
-      textMuted: "#64748B",
+      subtle: "#F3F4F6",
+      border: "#E5E7EB",
+      borderStrong: "#D1D5DB",
+      textPrimary: "#111827",
+      textSecondary: "#4B5563",
+      textMuted: "#6B7280",
     },
     semantic: {
       success: "#15803D",
       successSoft: "#DCFCE7",
       warning: "#B45309",
       warningSoft: "#FEF3C7",
-      danger: "#B91C1C",
+      danger: "#991B1B",
       dangerSoft: "#FEE2E2",
-      info: "#0369A1",
-      infoSoft: "#E0F2FE",
+      info: "#1E293B",
+      infoSoft: "#F1F5F9",
     },
     charts: {
       pillarPalette: [
-        "#0E5A78", // Professional Engagement
-        "#0F766E", // Knowledge & Insights
-        "#1D4ED8", // Workplace Excellence
-        "#4338CA", // Recognition & Rewards
-        "#0369A1", // Networking & Relationships
-        "#15803D", // Post-Event Application
+        "#D41B23", // Professional Engagement (CCI Crimson)
+        "#1E293B", // Knowledge & Insights (Obsidian Slate)
+        "#9F1239", // Workplace Excellence (Deep Rose)
+        "#B45309", // Recognition & Rewards (Warm Amber)
+        "#475569", // Networking & Relationships (Cool Graphite)
+        "#15803D", // Post-Event Application (Growth Emerald)
       ],
-      grid: "#E2E8F0",
-      axis: "#64748B",
+      grid: "#E5E7EB",
+      axis: "#6B7280",
     },
   },
   typography: {
-    fontSans: "var(--font-inter), system-ui, -apple-system, sans-serif",
-    fontDisplay: "var(--font-plus-jakarta), var(--font-inter), system-ui, sans-serif",
-    fontMono: "var(--font-jetbrains), ui-monospace, monospace",
+    fontSans: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    fontDisplay: "'Plus Jakarta Sans', Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+    fontMono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
   },
   spacing: {
     pageMaxWidth: "1360px",
@@ -75,8 +72,8 @@ export const designTokens = {
     full: "9999px",
   },
   shadows: {
-    card: "0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.06)",
-    elevated: "0 4px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04)",
+    card: "0 1px 2px 0 rgba(17, 24, 39, 0.04), 0 1px 3px 0 rgba(17, 24, 39, 0.06)",
+    elevated: "0 4px 16px -2px rgba(17, 24, 39, 0.08), 0 2px 6px -2px rgba(17, 24, 39, 0.04)",
   },
   componentSizes: {
     inputHeight: "42px",

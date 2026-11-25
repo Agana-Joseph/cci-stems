@@ -3,7 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
+import { CciLogo } from "@/components/ui/cci-logo";
 import { cn } from "@/lib/utils/cn";
 
 const participantLinks = [
@@ -20,9 +21,7 @@ export function ParticipantShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link href="/assessment" className="flex items-center gap-2.5 focus-ring rounded-md">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Compass className="h-5 w-5" />
-            </div>
+            <CciLogo size="md" />
             <div className="leading-tight">
               <p className="font-display text-sm font-bold tracking-wide text-foreground">
                 CCI STEM CONNECT

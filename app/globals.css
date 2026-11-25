@@ -4,30 +4,31 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    --background: 210 20% 98%;
+    --foreground: 222 35% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 222 35% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 222 35% 11%;
 
-    /* Confident Ocean Teal-Blue (#0E5A78) */
-    --primary: 197 79% 26%;
-    --primary-foreground: 210 40% 98%;
+    /* CCI Crimson Brand Red (#D41B23) */
+    --primary: 357 77% 47%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 95%;
-    --secondary-foreground: 222 47% 15%;
+    --secondary: 220 14% 95%;
+    --secondary-foreground: 222 35% 14%;
 
-    --muted: 210 40% 95%;
-    --muted-foreground: 215 16% 44%;
+    --muted: 220 14% 95%;
+    --muted-foreground: 215 16% 43%;
 
-    --accent: 197 54% 94%;
-    --accent-foreground: 197 79% 22%;
+    --accent: 357 75% 96%;
+    --accent-foreground: 357 78% 36%;
 
-    --destructive: 0 72% 46%;
-    --destructive-foreground: 210 40% 98%;
+    /* Distinct dark alert ruby for error states */
+    --destructive: 0 74% 38%;
+    --destructive-foreground: 0 0% 100%;
 
     --success: 142 71% 30%;
     --success-foreground: 0 0% 100%;
@@ -35,9 +36,9 @@
     --warning: 32 95% 38%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 214 32% 89%;
-    --input: 214 32% 85%;
-    --ring: 197 79% 26%;
+    --border: 220 16% 89%;
+    --input: 220 16% 84%;
+    --ring: 357 77% 47%;
 
     --radius: 0.625rem;
   }

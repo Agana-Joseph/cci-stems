@@ -179,8 +179,8 @@ export default function AnalyticsCharts({
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="average" name="Average" fill="#0E5A78" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="median" name="Median" fill="#0F766E" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="average" name="Average" fill="#D41B23" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="median" name="Median" fill="#1E293B" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -207,9 +207,9 @@ export default function AnalyticsCharts({
                 <Radar
                   name="Pillar Average"
                   dataKey="average"
-                  stroke="#0E5A78"
-                  fill="#0E5A78"
-                  fillOpacity={0.25}
+                  stroke="#D41B23"
+                  fill="#D41B23"
+                  fillOpacity={0.22}
                 />
                 <Tooltip />
               </RadarChart>
@@ -234,7 +234,7 @@ export default function AnalyticsCharts({
                 <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
                 <Tooltip />
-                <Bar dataKey="score" name="Score" fill="#1D4ED8" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="score" name="Score" fill="#D41B23" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -262,14 +262,14 @@ export default function AnalyticsCharts({
                   type="monotone"
                   dataKey="completionRate"
                   name="Completion Rate (%)"
-                  stroke="#0E5A78"
+                  stroke="#D41B23"
                   strokeWidth={2.5}
                 />
                 <Line
                   type="monotone"
                   dataKey="reportedActions"
                   name="Reported Actions"
-                  stroke="#15803D"
+                  stroke="#1E293B"
                   strokeWidth={2.5}
                 />
               </LineChart>
@@ -297,7 +297,7 @@ export default function AnalyticsCharts({
                 <XAxis dataKey="stage" tick={{ fontSize: 12 }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                 <Tooltip />
-                <Bar dataKey="count" name="Actions" fill="#0F766E" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="count" name="Actions" fill="#1E293B" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -323,7 +323,7 @@ export default function AnalyticsCharts({
                 <XAxis dataKey="metric" tick={{ fontSize: 12 }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                 <Tooltip />
-                <Bar dataKey="value" name="Count" fill="#0369A1" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="value" name="Count" fill="#D41B23" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -385,7 +385,7 @@ export default function AnalyticsCharts({
                 <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
                 <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Bar dataKey="count" name="Participants" fill="#4338CA" radius={[0, 6, 6, 0]} />
+                <Bar dataKey="count" name="Participants" fill="#9F1239" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -408,7 +408,7 @@ export default function AnalyticsCharts({
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-12} textAnchor="end" />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Bar dataKey="count" name="Participants" fill="#0E5A78" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="count" name="Participants" fill="#D41B23" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}

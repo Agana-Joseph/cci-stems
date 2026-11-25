@@ -6,6 +6,7 @@ import { ArrowRight, Calendar, Clock, MapPin, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CciLogo } from "@/components/ui/cci-logo";
 import { Label, NativeSelect } from "@/components/ui/form-controls";
 import { ErrorAlert, EmptyState } from "@/components/feedback/states";
 import { Skeleton } from "@/components/ui/tabs-and-progress";
@@ -39,11 +40,16 @@ export default function AssessmentWelcomePage() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-card sm:p-10">
+      <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+        <div className="h-1.5 bg-gradient-to-r from-[#D41B23] via-[#B5151C] to-[#8E1117]" />
+        <div className="p-6 sm:p-10">
         <div className="space-y-4">
-          <Badge variant="default" className="tracking-wider uppercase">
-            CCI STEM CONNECT
-          </Badge>
+          <div className="flex items-center gap-3">
+            <CciLogo size="md" />
+            <Badge variant="default" className="tracking-wider uppercase">
+              CCI STEM CONNECT
+            </Badge>
+          </div>
           <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Your Experience. Your Insights. Our Impact.
           </h1>
@@ -151,6 +157,7 @@ export default function AssessmentWelcomePage() {
           <p className="text-xs text-muted-foreground">
             No password or account creation required.
           </p>
+        </div>
         </div>
       </section>
 

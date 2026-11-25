@@ -87,7 +87,7 @@ export function QuestionCardDeck({
       </div>
 
       <Card className="overflow-hidden border-primary/20 shadow-elevated">
-        <div className="h-1.5 bg-gradient-to-r from-primary via-teal-600 to-sky-600" />
+        <div className="h-1.5 bg-gradient-to-r from-[#D41B23] via-[#B5151C] to-[#8E1117]" />
         <CardHeader className="pb-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-xl">{activeItem.card.title}</CardTitle>

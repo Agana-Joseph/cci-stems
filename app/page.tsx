@@ -1,24 +1,23 @@
 import Link from "next/link";
-import { ArrowRight, BarChart3, ClipboardList, Compass, Layers, ShieldCheck } from "lucide-react";
+import { ArrowRight, BarChart3, ClipboardList, Layers, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CciLogo } from "@/components/ui/cci-logo";
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Compass className="h-5 w-5" />
-            </div>
+          <Link href="/" className="flex items-center gap-2.5">
+            <CciLogo size="md" />
             <div>
               <p className="font-display text-sm font-bold tracking-wide">CCI STEM CONNECT</p>
               <p className="text-[11px] text-muted-foreground">
                 Professional Engagement &amp; Impact Measurement
               </p>
             </div>
-          </div>
+          </Link>
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" size="sm">
               <Link href="/admin">Admin Dashboard</Link>
