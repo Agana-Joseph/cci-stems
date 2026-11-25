@@ -83,6 +83,8 @@ export const questionFormSchema = z.object({
   question_type: z.enum([
     "short_text",
     "long_text",
+    "email",
+    "phone",
     "single_choice",
     "multiple_choice",
     "yes_no",

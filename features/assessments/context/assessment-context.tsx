@@ -33,6 +33,7 @@ interface AssessmentContextValue {
   startedAt: string;
   responses: Record<string, AssessmentResponseInput>;
   setResponse: (questionId: string, response: AssessmentResponseInput) => void;
+  prefillResponses: (prefilled: Record<string, AssessmentResponseInput>) => void;
   introSeen: boolean;
   setIntroSeen: (seen: boolean) => void;
   targetSectionIndex: number | null;
@@ -73,6 +74,7 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
   const [profile, setProfile] = React.useState<ParticipantProfileDraft>(initialProfile);
   const [startedAt, setStartedAt] = React.useState(() => new Date().toISOString());
   const [responses, setResponses] = React.useState<Record<string, AssessmentResponseInput>>({});
+  const editedQuestionIdsRef = React.useRef<Set<string>>(new Set());
   const [introSeen, setIntroSeen] = React.useState(false);
   const [targetSectionIndex, setTargetSectionIndex] = React.useState<number | null>(null);
   const [submission, setSubmission] = React.useState<AssessmentSubmissionRead | null>(null);
@@ -93,11 +95,39 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
   );
 
   const setResponse = React.useCallback((questionId: string, response: AssessmentResponseInput) => {
+    editedQuestionIdsRef.current.add(questionId);
     setResponses((prev) => ({
       ...prev,
       [questionId]: response,
     }));
   }, []);
+
+  const prefillResponses = React.useCallback(
+    (prefilled: Record<string, AssessmentResponseInput>) => {
+      setResponses((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const [questionId, value] of Object.entries(prefilled)) {
+          if (editedQuestionIdsRef.current.has(questionId)) continue;
+          const existing = prev[questionId];
+          const same =
+            existing &&
+            existing.question_id === value.question_id &&
+            existing.response_text === value.response_text &&
+            existing.response_numeric === value.response_numeric &&
+            existing.response_boolean === value.response_boolean &&
+            existing.response_date === value.response_date &&
+            existing.explanation_text === value.explanation_text;
+          if (!same) {
+            next[questionId] = value;
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    },
+    []
+  );
 
   const getProfileUpdatesPayload = React.useCallback(
     (consentGiven: boolean): ProfileUpdatesInput => {
@@ -124,6 +154,7 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
     setLookupMessage(null);
     setProfile(initialProfile);
     setStartedAt(new Date().toISOString());
+    editedQuestionIdsRef.current.clear();
     setResponses({});
     setIntroSeen(false);
     setTargetSectionIndex(null);
@@ -146,6 +177,7 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       startedAt,
       responses,
       setResponse,
+      prefillResponses,
       introSeen,
       setIntroSeen,
       targetSectionIndex,
@@ -167,6 +199,7 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       startedAt,
       responses,
       setResponse,
+      prefillResponses,
       introSeen,
       targetSectionIndex,
       submission,

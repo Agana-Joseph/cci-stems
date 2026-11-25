@@ -11,6 +11,8 @@ export type AttendanceStatus = "confirmed" | "partial" | "absent" | "unverified"
 export type QuestionType =
   | "short_text"
   | "long_text"
+  | "email"
+  | "phone"
   | "single_choice"
   | "multiple_choice"
   | "yes_no"

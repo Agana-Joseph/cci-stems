@@ -285,6 +285,8 @@ export default function AdminQuestionsPage() {
               <option value="yes_no">Yes / No</option>
               <option value="short_text">Short Text</option>
               <option value="long_text">Long Text</option>
+              <option value="email">Email</option>
+              <option value="phone">Phone</option>
               <option value="numeric">Numeric</option>
               <option value="date">Date</option>
             </NativeSelect>
@@ -332,6 +334,8 @@ export default function AdminQuestionsPage() {
                   <option value="yes_no">Yes / No</option>
                   <option value="short_text">Short Text</option>
                   <option value="long_text">Long Text</option>
+                  <option value="email">Email</option>
+                  <option value="phone">Phone</option>
                   <option value="numeric">Numeric</option>
                   <option value="date">Date</option>
                 </NativeSelect>

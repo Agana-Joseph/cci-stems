@@ -87,4 +87,62 @@ describe("Dynamic QuestionField", () => {
       isQuestionAnswered(multiChoiceQuestion, { question_id: "q-multi", response_json: [] })
     ).toBe(false);
   });
+
+  it("renders and validates email and phone question types", () => {
+    const emailQuestion: QuestionRead = {
+      id: "q-email",
+      code: "email_address",
+      question_text: "Email Address",
+      question_type: "email",
+      is_required: true,
+      is_scorable: false,
+      allow_explanation: false,
+      display_order: 3,
+      options: [],
+    };
+    const phoneQuestion: QuestionRead = {
+      id: "q-phone",
+      code: "active_phone",
+      question_text: "Active Phone Number",
+      question_type: "phone",
+      is_required: true,
+      is_scorable: false,
+      allow_explanation: false,
+      display_order: 4,
+      options: [],
+    };
+
+    const onChange = vi.fn();
+    render(
+      <>
+        <QuestionField
+          question={emailQuestion}
+          required
+          value={{ question_id: "q-email", response_text: "ada@example.com" }}
+          onChange={onChange}
+        />
+        <QuestionField
+          question={phoneQuestion}
+          required
+          value={{ question_id: "q-phone", response_text: "+2348012345678" }}
+          onChange={onChange}
+        />
+      </>
+    );
+
+    expect(screen.getByDisplayValue("ada@example.com")).toHaveAttribute("type", "email");
+    expect(screen.getByDisplayValue("+2348012345678")).toHaveAttribute("type", "tel");
+    expect(
+      isQuestionAnswered(emailQuestion, {
+        question_id: "q-email",
+        response_text: "ada@example.com",
+      })
+    ).toBe(true);
+    expect(
+      isQuestionAnswered(phoneQuestion, {
+        question_id: "q-phone",
+        response_text: "+2348012345678",
+      })
+    ).toBe(true);
+  });
 });

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar, Skeleton } from "@/components/ui/tabs-and-progress";
@@ -21,6 +21,7 @@ import {
   useQuestionnaires,
 } from "@/hooks/use-queries";
 import { useAssessmentContext } from "@/features/assessments/context/assessment-context";
+import { buildProfilePrefillMap } from "@/features/assessments/utils/profile-autofill";
 import type { QuestionnaireQuestionItem, QuestionnaireSectionRead } from "@/types/api";
 
 interface SectionGroup {
@@ -37,8 +38,12 @@ export default function AssessmentQuestionsPage() {
     setEventId,
     questionnaireId,
     setQuestionnaireId,
+    phone,
+    email,
+    profile,
     responses,
     setResponse,
+    prefillResponses,
     introSeen,
     setIntroSeen,
     targetSectionIndex,
@@ -147,6 +152,17 @@ export default function AssessmentQuestionsPage() {
       .filter((c) => (c.questions?.length ?? 0) > 0);
   }, [cardsQuery.data, detailQuery.data]);
 
+  const profilePrefills = React.useMemo(
+    () => buildProfilePrefillMap(sectionGroups, profile, { phone, email }),
+    [sectionGroups, profile, phone, email]
+  );
+
+  React.useEffect(() => {
+    if (Object.keys(profilePrefills).length > 0) {
+      prefillResponses(profilePrefills);
+    }
+  }, [profilePrefills, prefillResponses]);
+
   const [sectionIndex, setSectionIndex] = React.useState(0);
   const [inCardsPhase, setInCardsPhase] = React.useState(false);
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
@@ -247,6 +263,9 @@ export default function AssessmentQuestionsPage() {
   }
 
   const currentSection = sectionGroups[Math.min(sectionIndex, sectionGroups.length - 1)]!;
+  const currentSectionPrefillCount = currentSection.items.filter((item) =>
+    Boolean(profilePrefills[item.question.id])
+  ).length;
   const startingQuestionNumber =
     sectionGroups.slice(0, sectionIndex).reduce((acc, g) => acc + g.items.length, 0) + 1;
 
@@ -329,6 +348,16 @@ export default function AssessmentQuestionsPage() {
           <p className="text-sm text-muted-foreground">{currentSection.description}</p>
         )}
       </div>
+
+      {currentSectionPrefillCount > 0 && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-primary/20 bg-primary/5 p-3.5 text-sm text-foreground">
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <span>
+            Details from your profile have been pre-filled below. You can review or edit any answer
+            and complete the remaining questions.
+          </span>
+        </div>
+      )}
 
       {/* Dynamic Questions */}
       <div className="space-y-4">

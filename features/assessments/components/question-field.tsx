@@ -14,6 +14,8 @@ export function isQuestionAnswered(
   switch (question.question_type) {
     case "short_text":
     case "long_text":
+    case "email":
+    case "phone":
     case "single_choice":
       return typeof value.response_text === "string" && value.response_text.trim().length > 0;
     case "yes_no":
@@ -26,7 +28,7 @@ export function isQuestionAnswered(
     case "multiple_choice":
       return Array.isArray(value.response_json) && value.response_json.length > 0;
     default:
-      return false;
+      return typeof value.response_text === "string" && value.response_text.trim().length > 0;
   }
 }
 
@@ -43,6 +45,8 @@ export function formatResponsePreview(
   switch (question.question_type) {
     case "short_text":
     case "long_text":
+    case "email":
+    case "phone":
       return value.response_text ?? "Not answered";
     case "single_choice":
       return value.response_text ? labelFor(value.response_text) : "Not answered";
@@ -66,7 +70,7 @@ export function formatResponsePreview(
     case "date":
       return value.response_date ?? "Not answered";
     default:
-      return "—";
+      return value.response_text ?? "—";
   }
 }
 
@@ -115,6 +119,32 @@ export function QuestionField({
             value={current.response_text ?? ""}
             onChange={(e) => update({ response_text: e.target.value })}
             placeholder="Enter your answer..."
+            aria-invalid={Boolean(error)}
+          />
+        );
+
+      case "email":
+        return (
+          <Input
+            id={fieldId}
+            type="email"
+            autoComplete="email"
+            value={current.response_text ?? ""}
+            onChange={(e) => update({ response_text: e.target.value })}
+            placeholder="you@organisation.com"
+            aria-invalid={Boolean(error)}
+          />
+        );
+
+      case "phone":
+        return (
+          <Input
+            id={fieldId}
+            type="tel"
+            autoComplete="tel"
+            value={current.response_text ?? ""}
+            onChange={(e) => update({ response_text: e.target.value })}
+            placeholder="+2348012345678"
             aria-invalid={Boolean(error)}
           />
         );
@@ -312,6 +342,25 @@ export function QuestionField({
             aria-invalid={Boolean(error)}
           />
         );
+
+      default: {
+        const rawType = String(question.question_type ?? "").toLowerCase();
+        const inputType = rawType.includes("email")
+          ? "email"
+          : rawType.includes("phone") || rawType === "tel"
+            ? "tel"
+            : "text";
+        return (
+          <Input
+            id={fieldId}
+            type={inputType}
+            value={current.response_text ?? ""}
+            onChange={(e) => update({ response_text: e.target.value })}
+            placeholder="Enter your answer..."
+            aria-invalid={Boolean(error)}
+          />
+        );
+      }
     }
   };
 
