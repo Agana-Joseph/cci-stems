@@ -203,11 +203,17 @@ export default function FollowUpHubPage() {
                 value={activeEventId}
                 onChange={(e) => setSelectedEventId(e.target.value)}
               >
-                {(eventsQuery.data ?? []).map((ev) => (
-                  <option key={ev.id} value={ev.id}>
-                    {ev.title}
-                  </option>
-                ))}
+                {eventsQuery.isLoading ? (
+                  <option value="">Loading events...</option>
+                ) : (eventsQuery.data?.length ?? 0) === 0 ? (
+                  <option value="">No events available</option>
+                ) : (
+                  (eventsQuery.data ?? []).map((ev) => (
+                    <option key={ev.id} value={ev.id}>
+                      {ev.title}
+                    </option>
+                  ))
+                )}
               </NativeSelect>
             </div>
             <div className="space-y-1">
