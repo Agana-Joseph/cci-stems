@@ -285,6 +285,19 @@ export function QuestionField({
         const minLabel = getLabelFor(min) ?? "Lowest";
         const maxLabel = getLabelFor(max) ?? "Highest";
 
+        const ratio = (clampedValue - min) / span;
+        const badgeToneClass = !hasValue
+          ? "bg-muted text-muted-foreground"
+          : ratio <= 0.15
+            ? "bg-red-100 text-red-700"
+            : ratio <= 0.35
+              ? "bg-orange-100 text-orange-700"
+              : ratio <= 0.6
+                ? "bg-amber-100 text-amber-800"
+                : ratio <= 0.85
+                  ? "bg-teal-100 text-teal-700"
+                  : "bg-emerald-100 text-emerald-800";
+
         const handleDecrease = () => {
           const next = hasValue ? Math.max(min, clampedValue - 1) : min;
           update({ response_numeric: next });
@@ -300,10 +313,8 @@ export function QuestionField({
             <div className="flex items-center justify-between gap-2">
               <span
                 className={cn(
-                  "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                  hasValue
-                    ? "bg-primary/10 text-primary"
-                    : "bg-muted text-muted-foreground"
+                  "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150",
+                  badgeToneClass
                 )}
               >
                 {hasValue
@@ -323,7 +334,7 @@ export function QuestionField({
                 <Minus className="h-4 w-4" />
               </button>
 
-              <div className="relative flex h-9 flex-1 items-center rounded-full focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+              <div className="relative flex h-9 flex-1 items-center">
                 {/* Visual bar track */}
                 <div className="relative h-3.5 w-full overflow-hidden rounded-full bg-secondary">
                   <div
@@ -377,7 +388,7 @@ export function QuestionField({
                       update({ response_numeric: Number(e.currentTarget.value) });
                     }
                   }}
-                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0 outline-none"
                 />
               </div>
 
