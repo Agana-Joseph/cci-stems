@@ -32,17 +32,19 @@ export default function HomePage() {
       <main className="container py-14 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
-            Event Intelligence
+            CCI STEM CONNECT
           </h1>
+          <p className="mt-3 text-lg font-bold tracking-tight text-foreground sm:text-xl">
+            Connect. Grow. Improve. Excel.
+          </p>
           <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
-            CCI STEM Connect captures structured participant reflections across six impact pillars,
-            tracks 30-, 60-, and 90-day outcomes, and delivers evidence-backed analytics for event
-            organisers.
+            Connect with professionals, grow your knowledge, improve your work ethic, and build a
+            career grounded in Christ-like character, integrity, excellence, and purpose.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild size="lg">
               <Link href="/assessment">
-                Participant Assessment
+                Participate in the Assessment
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
