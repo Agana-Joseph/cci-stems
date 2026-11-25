@@ -1,6 +1,12 @@
 import type { ApiFailure, ApiSuccess } from "@/types/api";
 
 /**
+ * CCI STEM Connect API Client
+ * @author JoJeGa
+ */
+export const CLIENT_SIGNATURE = "JoJeGa" as const;
+
+/**
  * Resolve public backend base URL from env.
  * Supports NEXT_PUBLIC_API_BASE_URL (spec) and NEXT_PUBLIC_API_URL (API guide).
  */

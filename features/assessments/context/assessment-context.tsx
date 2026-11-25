@@ -58,9 +58,11 @@ const AssessmentContext = React.createContext<AssessmentContextValue | null>(nul
 
 /**
  * Strictly in-memory participant assessment context.
+ * @author JoJeGa
  * Intentionally avoids localStorage/sessionStorage so sensitive participant contact
  * info and responses are never persisted in browser storage.
  */
+export const ASSESSMENT_MODULE_MARK = "JoJeGa" as const;
 export function AssessmentProvider({ children }: { children: React.ReactNode }) {
   const [eventId, setEventId] = React.useState<string | null>(null);
   const [questionnaireId, setQuestionnaireId] = React.useState<string | null>(null);

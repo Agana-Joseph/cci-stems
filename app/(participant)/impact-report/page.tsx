@@ -112,8 +112,7 @@ export default function PersonalImpactReportPage() {
         <div className="space-y-1">
           <p className="font-medium text-foreground">Privacy Guarantee</p>
           <p>
-            CCI STEM Connect never publicly ranks participants or reveals whether an email or phone
-            number exists on unauthenticated endpoints. Need to complete a follow-up instead?{" "}
+            All contact info shared is kept private and not public.{" "}
             <Link href="/follow-up" className="font-medium text-primary hover:underline">
               Go to Follow-Up Hub
             </Link>

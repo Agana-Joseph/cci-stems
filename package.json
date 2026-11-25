@@ -2,7 +2,8 @@
   "name": "cci-stem-frontend",
   "version": "1.0.0",
   "private": true,
-  "description": "CCI STEM Connect — Professional Engagement & Impact Measurement System Frontend",
+  "author": "JoJeGa",
+  "description": "CCI STEM Connect — Professional Engagement & Impact Measurement System Frontend (by JoJeGa)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

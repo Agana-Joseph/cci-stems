@@ -65,7 +65,10 @@ export function ParticipantShell({ children }: { children: React.ReactNode }) {
               Responses are transmitted securely and are not persisted in browser storage.
             </span>
           </div>
-          <span>CCI STEM Connect &middot; Professional Engagement &amp; Impact System</span>
+          <span>
+            CCI STEM Connect &middot; Professional Engagement &amp; Impact System
+            <span className="ml-1.5 text-muted-foreground/70">&middot; JoJeGa</span>
+          </span>
         </div>
       </footer>
     </div>

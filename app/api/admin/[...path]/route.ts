@@ -113,6 +113,7 @@ async function handleProxy(
     const responseText = await upstream.text();
     const resHeaders = new Headers();
     resHeaders.set("Content-Type", upstream.headers.get("content-type") || "application/json");
+    resHeaders.set("X-Application-Mark", "JoJeGa");
     const upstreamReqId = upstream.headers.get("x-request-id");
     if (upstreamReqId) resHeaders.set("X-Request-ID", upstreamReqId);
     const rateLimitRem = upstream.headers.get("x-ratelimit-remaining");

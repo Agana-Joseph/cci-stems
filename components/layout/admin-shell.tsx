@@ -246,6 +246,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               >
                 Open Participant Portal
               </Link>
+              <p className="text-center text-[10px] tracking-wide text-muted-foreground/70">
+                CCI STEM Connect &middot; JoJeGa
+              </p>
             </div>
           ) : (
             <div className="flex justify-center">

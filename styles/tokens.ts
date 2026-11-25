@@ -1,12 +1,19 @@
 /**
  * CCI STEM Connect Design Tokens
+ * @author JoJeGa
  * Restrained institutional analytics palette:
  * - Deep navy / slate charcoal for primary text
  * - Pure white & cool neutral slate surfaces
  * - Confident teal-blue primary action
  * - Emerald green (progress), Amber (pending), Crimson (error)
  */
+export const BRAND_TRADEMARK = "JoJeGa" as const;
+
 export const designTokens = {
+  meta: {
+    mark: BRAND_TRADEMARK,
+    system: "CCI STEM Connect UI",
+  },
   colors: {
     brand: {
       navy: "#0F172A",
