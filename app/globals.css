@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Confident Ocean Teal-Blue (#0E5A78) */
+    --primary: 197 79% 26%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 95%;
+    --secondary-foreground: 222 47% 15%;
+
+    --muted: 210 40% 95%;
+    --muted-foreground: 215 16% 44%;
+
+    --accent: 197 54% 94%;
+    --accent-foreground: 197 79% 22%;
+
+    --destructive: 0 72% 46%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 142 71% 30%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 32 95% 38%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 214 32% 89%;
+    --input: 214 32% 85%;
+    --ring: 197 79% 26%;
+
+    --radius: 0.625rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display tracking-tight text-foreground;
+  }
+}
+
+/* Focus-visible polish for accessibility */
+@layer utilities {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+}
