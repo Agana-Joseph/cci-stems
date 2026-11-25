@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BarChart3, ClipboardList, Layers, ShieldCheck } from "lucide-react";
+import { ArrowRight, BarChart3, ClipboardList, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CciLogo } from "@/components/ui/cci-logo";
@@ -31,12 +31,8 @@ export default function HomePage() {
 
       <main className="container py-14 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Event Intelligence &amp; Longitudinal Impact Platform
-          </span>
-          <h1 className="mt-5 font-display text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
-            Measuring Professional Growth Beyond the Event Day
+          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
+            Event Intelligence
           </h1>
           <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
             CCI STEM Connect captures structured participant reflections across six impact pillars,
