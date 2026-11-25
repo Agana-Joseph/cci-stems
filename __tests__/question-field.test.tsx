@@ -2,6 +2,7 @@ import * as React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import {
+  formatRatingOptionLabel,
   isQuestionAnswered,
   QuestionField,
 } from "@/features/assessments/components/question-field";
@@ -144,5 +145,13 @@ describe("Dynamic QuestionField", () => {
         response_text: "+2348012345678",
       })
     ).toBe(true);
+  });
+
+  it("strips repeated number/dash prefixes and slash alternates from rating_scale labels", () => {
+    expect(formatRatingOptionLabel("1 — Very Low / Not at all")).toBe("Very Low");
+    expect(formatRatingOptionLabel("2 — Low / Slightly")).toBe("Low");
+    expect(formatRatingOptionLabel("3 — Moderate")).toBe("Moderate");
+    expect(formatRatingOptionLabel("4 — High / Actively")).toBe("High");
+    expect(formatRatingOptionLabel("5 — Very High / Extremely")).toBe("Very High");
   });
 });

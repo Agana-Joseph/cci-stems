@@ -32,6 +32,12 @@ export function isQuestionAnswered(
   }
 }
 
+export function formatRatingOptionLabel(label: string): string {
+  const withoutPrefix = label.replace(/^\s*\d+\s*(?:—|–|-|:)\s*/, "");
+  const primary = withoutPrefix.split(/\s*\/\s*/)[0] ?? withoutPrefix;
+  return primary.trim();
+}
+
 export function formatResponsePreview(
   question: QuestionRead,
   value?: AssessmentResponseInput
@@ -58,9 +64,10 @@ export function formatResponsePreview(
       return value.response_boolean ? "Yes" : "No";
     case "rating_scale": {
       const max = typeof question.validation_config?.max === "number" ? question.validation_config.max : 5;
-      const optLabel = activeOptions.find(
+      const rawOptLabel = activeOptions.find(
         (o) => o.option_value === String(value.response_numeric)
       )?.option_label;
+      const optLabel = rawOptLabel ? formatRatingOptionLabel(rawOptLabel) : undefined;
       return optLabel
         ? `${value.response_numeric} / ${max} (${optLabel})`
         : `${value.response_numeric} / ${max}`;
@@ -273,9 +280,10 @@ export function QuestionField({
             >
               {scaleValues.map((num) => {
                 const active = current.response_numeric === num;
-                const optLabel = activeOptions.find(
+                const rawOptLabel = activeOptions.find(
                   (o) => o.option_value === String(num)
                 )?.option_label;
+                const optLabel = rawOptLabel ? formatRatingOptionLabel(rawOptLabel) : undefined;
                 return (
                   <button
                     key={num}
@@ -307,8 +315,8 @@ export function QuestionField({
             </div>
             {activeOptions.length === 0 && (
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{min} — Lowest</span>
-                <span>{max} — Highest</span>
+                <span>Lowest</span>
+                <span>Highest</span>
               </div>
             )}
           </div>
