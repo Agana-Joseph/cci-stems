@@ -45,12 +45,13 @@ export default function AssessmentWelcomePage() {
             CCI STEM CONNECT
           </Badge>
           <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Your Experience. Your Insights. Your Impact.
+            Your Experience. Your Insights. Our Impact.
           </h1>
           <div className="max-w-2xl space-y-3 text-base leading-relaxed text-muted-foreground">
             <p>
               CCI STEM Connect brought professionals together to exchange ideas, share experiences,
-              explore workplace excellence, and build meaningful professional relationships.
+              explore workplace excellence, and build meaningful professional relationships in
+              Christ.
             </p>
             <p>
               We would love to understand what you took away from the experience and how it has

@@ -50,9 +50,7 @@ export default function PersonalImpactReportPage() {
             Identity Verification Required
           </CardTitle>
           <CardDescription>
-            To protect attendee privacy, personal impact reports are never displayed without
-            server-side participant authorisation. Enter your registered phone number or email
-            address to check access.
+            Enter your registered phone number or email address to check access.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
