@@ -45,6 +45,8 @@ export default function AssessmentQuestionsPage() {
     responses,
     setResponse,
     prefillResponses,
+    ratingPercentages,
+    setRatingPercentage,
     introSeen,
     setIntroSeen,
     targetSectionIndex,
@@ -343,11 +345,8 @@ export default function AssessmentQuestionsPage() {
       </div>
 
       {/* Section Title */}
-      <div className="space-y-1">
+      <div>
         <h1 className="font-display text-2xl font-bold text-foreground">{currentSection.title}</h1>
-        {currentSection.description && (
-          <p className="text-sm text-muted-foreground">{currentSection.description}</p>
-        )}
       </div>
 
       {currentSectionPrefillCount > 0 && (
@@ -371,7 +370,9 @@ export default function AssessmentQuestionsPage() {
               required={isReq}
               indexLabel={`Q${startingQuestionNumber + idx}.`}
               value={responses[item.question.id]}
+              percentValue={ratingPercentages[item.question.id]}
               error={fieldErrors[item.question.id]}
+              onPercentChange={(pct) => setRatingPercentage(item.question.id, pct)}
               onChange={(next) => {
                 setResponse(item.question.id, next);
                 if (fieldErrors[item.question.id]) {

@@ -33,15 +33,56 @@ export function isQuestionAnswered(
   }
 }
 
+export const PERCENTAGE_STEPS: readonly number[] = [
+  0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57,
+  60, 63, 66, 69, 72, 75, 78, 81, 84, 87, 90, 93, 96, 99, 100,
+];
+
+const GENERIC_RATING_LABELS = new Set([
+  "very low",
+  "low",
+  "moderate",
+  "medium",
+  "average",
+  "neutral",
+  "high",
+  "very high",
+  "lowest",
+  "highest",
+]);
+
 export function formatRatingOptionLabel(label: string): string {
   const withoutPrefix = label.replace(/^\s*\d+\s*(?:—|–|-|:)\s*/, "");
   const primary = withoutPrefix.split(/\s*\/\s*/)[0] ?? withoutPrefix;
   return primary.trim();
 }
 
+export function isPercentageRatingQuestion(question: QuestionRead): boolean {
+  if (question.question_type !== "rating_scale") return false;
+  const activeOptions = (question.options ?? []).filter((o) => o.is_active);
+  if (activeOptions.length === 0) return true;
+  return activeOptions.every((o) =>
+    GENERIC_RATING_LABELS.has(formatRatingOptionLabel(o.option_label).toLowerCase())
+  );
+}
+
+function getNearestPercentStepIndex(percent: number): number {
+  let bestIdx = 0;
+  let bestDiff = Infinity;
+  for (let i = 0; i < PERCENTAGE_STEPS.length; i++) {
+    const diff = Math.abs(PERCENTAGE_STEPS[i]! - percent);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
 export function formatResponsePreview(
   question: QuestionRead,
-  value?: AssessmentResponseInput
+  value?: AssessmentResponseInput,
+  percentValue?: number
 ): string {
   if (!value || !isQuestionAnswered(question, value)) return "Not answered";
 
@@ -64,7 +105,14 @@ export function formatResponsePreview(
     case "yes_no":
       return value.response_boolean ? "Yes" : "No";
     case "rating_scale": {
+      const min = typeof question.validation_config?.min === "number" ? question.validation_config.min : 1;
       const max = typeof question.validation_config?.max === "number" ? question.validation_config.max : 5;
+      if (isPercentageRatingQuestion(question)) {
+        if (typeof percentValue === "number") return `${percentValue}%`;
+        const span = Math.max(1, max - min);
+        const derived = Math.round(((Number(value.response_numeric) - min) / span) * 100);
+        return `${Math.min(100, Math.max(0, derived))}%`;
+      }
       const rawOptLabel = activeOptions.find(
         (o) => o.option_value === String(value.response_numeric)
       )?.option_label;
@@ -86,19 +134,24 @@ interface QuestionFieldProps {
   question: QuestionRead;
   required: boolean;
   value?: AssessmentResponseInput;
+  percentValue?: number;
   error?: string | null;
   indexLabel?: string;
   onChange: (next: AssessmentResponseInput) => void;
+  onPercentChange?: (percent: number) => void;
 }
 
 export function QuestionField({
   question,
   required,
   value,
+  percentValue,
   error,
   indexLabel,
   onChange,
+  onPercentChange,
 }: QuestionFieldProps) {
+  const [localPercent, setLocalPercent] = React.useState<number | undefined>(undefined);
   const activeOptions = React.useMemo(
     () =>
       (question.options ?? [])
@@ -271,6 +324,148 @@ export function QuestionField({
         const span = Math.max(1, max - min);
         const hasValue =
           typeof current.response_numeric === "number" && !Number.isNaN(current.response_numeric);
+        const usePercentage = isPercentageRatingQuestion(question);
+
+        if (usePercentage) {
+          const maxStepIdx = PERCENTAGE_STEPS.length - 1;
+          const storedPercent = percentValue ?? localPercent;
+          const derivedPercent = hasValue
+            ? Math.round(((Math.min(max, Math.max(min, current.response_numeric!)) - min) / span) * 100)
+            : 0;
+          const activeStepIdx = hasValue
+            ? getNearestPercentStepIndex(storedPercent ?? derivedPercent)
+            : 0;
+          const activePercent = PERCENTAGE_STEPS[activeStepIdx] ?? 0;
+          const thumbPercent = hasValue ? (activeStepIdx / maxStepIdx) * 100 : 0;
+          const ratio = activePercent / 100;
+
+          const badgeToneClass = !hasValue
+            ? "bg-muted text-muted-foreground"
+            : ratio <= 0.15
+              ? "bg-red-100 text-red-700"
+              : ratio <= 0.35
+                ? "bg-orange-100 text-orange-700"
+                : ratio <= 0.6
+                  ? "bg-amber-100 text-amber-800"
+                  : ratio <= 0.85
+                    ? "bg-teal-100 text-teal-700"
+                    : "bg-emerald-100 text-emerald-800";
+
+          const commitPercentStep = (stepIdx: number) => {
+            const clampedIdx = Math.min(maxStepIdx, Math.max(0, stepIdx));
+            const pct = PERCENTAGE_STEPS[clampedIdx] ?? 0;
+            setLocalPercent(pct);
+            onPercentChange?.(pct);
+            const mappedNumeric = Math.round(min + (pct / 100) * span);
+            update({ response_numeric: Math.min(max, Math.max(min, mappedNumeric)) });
+          };
+
+          const handleDecrease = () => {
+            commitPercentStep(hasValue ? activeStepIdx - 1 : 0);
+          };
+
+          const handleIncrease = () => {
+            commitPercentStep(hasValue ? activeStepIdx + 1 : 1);
+          };
+
+          return (
+            <div className="space-y-3 pt-1">
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tabular-nums transition-colors duration-150",
+                    badgeToneClass
+                  )}
+                >
+                  {hasValue ? `${activePercent}%` : "Slide the bar or use − / + to select"}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleDecrease}
+                  disabled={hasValue && activeStepIdx <= 0}
+                  aria-label="Decrease percentage"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:border-primary/50 hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-40 focus-ring"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+
+                <div className="relative flex h-9 flex-1 items-center">
+                  <div className="relative h-3.5 w-full overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-150"
+                      style={{
+                        width: hasValue ? `${thumbPercent}%` : "0%",
+                        minWidth: hasValue ? "14px" : "0px",
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    aria-hidden="true"
+                    className={cn(
+                      "pointer-events-none absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 shadow-sm transition-all duration-150",
+                      hasValue
+                        ? "border-primary bg-card ring-2 ring-primary/20"
+                        : "border-muted-foreground/40 bg-card"
+                    )}
+                    style={{ left: `${thumbPercent}%` }}
+                  />
+
+                  <input
+                    id={fieldId}
+                    type="range"
+                    min={0}
+                    max={maxStepIdx}
+                    step={1}
+                    value={activeStepIdx}
+                    aria-labelledby={`${fieldId}-label`}
+                    aria-valuetext={hasValue ? `${activePercent}%` : "Not selected"}
+                    aria-invalid={Boolean(error)}
+                    onChange={(e) => commitPercentStep(Number(e.target.value))}
+                    onPointerUp={(e) => {
+                      if (!hasValue) {
+                        commitPercentStep(Number(e.currentTarget.value));
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (
+                        !hasValue &&
+                        (e.key === "ArrowLeft" ||
+                          e.key === "ArrowRight" ||
+                          e.key === "ArrowUp" ||
+                          e.key === "ArrowDown" ||
+                          e.key === "Enter" ||
+                          e.key === " ")
+                      ) {
+                        commitPercentStep(Number(e.currentTarget.value));
+                      }
+                    }}
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0 outline-none"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleIncrease}
+                  disabled={hasValue && activeStepIdx >= maxStepIdx}
+                  aria-label="Increase percentage"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:border-primary/50 hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-40 focus-ring"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 px-12 text-xs text-muted-foreground">
+                <span>0%</span>
+                <span className="text-right">100%</span>
+              </div>
+            </div>
+          );
+        }
+
         const clampedValue = hasValue
           ? Math.min(max, Math.max(min, current.response_numeric!))
           : min;

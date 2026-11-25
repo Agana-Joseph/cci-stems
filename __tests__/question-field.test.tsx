@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import {
   formatRatingOptionLabel,
+  isPercentageRatingQuestion,
   isQuestionAnswered,
+  PERCENTAGE_STEPS,
   QuestionField,
 } from "@/features/assessments/components/question-field";
 import type { QuestionRead } from "@/types/api";
@@ -38,11 +40,22 @@ const multiChoiceQuestion: QuestionRead = {
 };
 
 describe("Dynamic QuestionField", () => {
-  it("maps rating_scale slider and stepper controls to response_numeric and supports explanation_text", () => {
+  it("maps rating_scale percentage slider (3% increments) to response_numeric and supports explanation_text", () => {
     const onChange = vi.fn();
-    render(<QuestionField question={ratingQuestion} required onChange={onChange} />);
+    const onPercentChange = vi.fn();
+    render(
+      <QuestionField
+        question={ratingQuestion}
+        required
+        onChange={onChange}
+        onPercentChange={onPercentChange}
+      />
+    );
 
-    fireEvent.change(screen.getByRole("slider"), { target: { value: "5" } });
+    fireEvent.change(screen.getByRole("slider"), {
+      target: { value: String(PERCENTAGE_STEPS.length - 1) },
+    });
+    expect(onPercentChange).toHaveBeenCalledWith(100);
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
         question_id: "q-rating",
@@ -153,5 +166,33 @@ describe("Dynamic QuestionField", () => {
     expect(formatRatingOptionLabel("3 — Moderate")).toBe("Moderate");
     expect(formatRatingOptionLabel("4 — High / Actively")).toBe("High");
     expect(formatRatingOptionLabel("5 — Very High / Extremely")).toBe("Very High");
+  });
+
+  it("uses percentage mode for generic Very Low..Very High scales and keeps custom verbal scales", () => {
+    const genericScale: QuestionRead = {
+      ...ratingQuestion,
+      id: "q-generic",
+      options: [
+        { option_value: "1", option_label: "1 — Very Low / Not at all", display_order: 1, is_active: true },
+        { option_value: "2", option_label: "2 — Low / Slightly", display_order: 2, is_active: true },
+        { option_value: "3", option_label: "3 — Moderate", display_order: 3, is_active: true },
+        { option_value: "4", option_label: "4 — High / Actively", display_order: 4, is_active: true },
+        { option_value: "5", option_label: "5 — Very High / Extremely", display_order: 5, is_active: true },
+      ],
+    };
+    const contextualScale: QuestionRead = {
+      ...ratingQuestion,
+      id: "q-contextual",
+      options: [
+        { option_value: "1", option_label: "Not actively involved", display_order: 1, is_active: true },
+        { option_value: "2", option_label: "Slightly involved", display_order: 2, is_active: true },
+        { option_value: "3", option_label: "Moderately involved", display_order: 3, is_active: true },
+        { option_value: "4", option_label: "Actively involved", display_order: 4, is_active: true },
+        { option_value: "5", option_label: "Very actively involved", display_order: 5, is_active: true },
+      ],
+    };
+
+    expect(isPercentageRatingQuestion(genericScale)).toBe(true);
+    expect(isPercentageRatingQuestion(contextualScale)).toBe(false);
   });
 });

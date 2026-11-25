@@ -27,6 +27,7 @@ export default function AssessmentReviewPage() {
     profile,
     startedAt,
     responses,
+    ratingPercentages,
     setTargetSectionIndex,
     submission,
     setSubmission,
@@ -194,7 +195,11 @@ export default function AssessmentReviewPage() {
                     {item.question.question_text}
                   </p>
                   <p className="mt-1 text-sm font-medium text-foreground">
-                    {formatResponsePreview(item.question, val)}
+                    {formatResponsePreview(
+                      item.question,
+                      val,
+                      ratingPercentages[item.question.id]
+                    )}
                   </p>
                   {val?.explanation_text && (
                     <p className="mt-1 text-xs italic text-muted-foreground">

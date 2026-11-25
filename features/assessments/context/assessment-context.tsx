@@ -34,6 +34,8 @@ interface AssessmentContextValue {
   responses: Record<string, AssessmentResponseInput>;
   setResponse: (questionId: string, response: AssessmentResponseInput) => void;
   prefillResponses: (prefilled: Record<string, AssessmentResponseInput>) => void;
+  ratingPercentages: Record<string, number>;
+  setRatingPercentage: (questionId: string, percent: number) => void;
   introSeen: boolean;
   setIntroSeen: (seen: boolean) => void;
   targetSectionIndex: number | null;
@@ -74,6 +76,7 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
   const [profile, setProfile] = React.useState<ParticipantProfileDraft>(initialProfile);
   const [startedAt, setStartedAt] = React.useState(() => new Date().toISOString());
   const [responses, setResponses] = React.useState<Record<string, AssessmentResponseInput>>({});
+  const [ratingPercentages, setRatingPercentages] = React.useState<Record<string, number>>({});
   const editedQuestionIdsRef = React.useRef<Set<string>>(new Set());
   const [introSeen, setIntroSeen] = React.useState(false);
   const [targetSectionIndex, setTargetSectionIndex] = React.useState<number | null>(null);
@@ -100,6 +103,10 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       ...prev,
       [questionId]: response,
     }));
+  }, []);
+
+  const setRatingPercentage = React.useCallback((questionId: string, percent: number) => {
+    setRatingPercentages((prev) => (prev[questionId] === percent ? prev : { ...prev, [questionId]: percent }));
   }, []);
 
   const prefillResponses = React.useCallback(
@@ -156,6 +163,7 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
     setStartedAt(new Date().toISOString());
     editedQuestionIdsRef.current.clear();
     setResponses({});
+    setRatingPercentages({});
     setIntroSeen(false);
     setTargetSectionIndex(null);
     setSubmission(null);
@@ -178,6 +186,8 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       responses,
       setResponse,
       prefillResponses,
+      ratingPercentages,
+      setRatingPercentage,
       introSeen,
       setIntroSeen,
       targetSectionIndex,
@@ -200,6 +210,8 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       responses,
       setResponse,
       prefillResponses,
+      ratingPercentages,
+      setRatingPercentage,
       introSeen,
       targetSectionIndex,
       submission,
