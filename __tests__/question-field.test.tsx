@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import {
   formatRatingOptionLabel,
+  formatResponsePreview,
   isPercentageRatingQuestion,
   isQuestionAnswered,
+  isYesNoRatingQuestion,
   PERCENTAGE_STEPS,
   QuestionField,
 } from "@/features/assessments/components/question-field";
@@ -194,5 +196,19 @@ describe("Dynamic QuestionField", () => {
 
     expect(isPercentageRatingQuestion(genericScale)).toBe(true);
     expect(isPercentageRatingQuestion(contextualScale)).toBe(false);
+
+    const binaryQuestion: QuestionRead = {
+      ...genericScale,
+      id: "q-binary",
+      question_text: "Did you interact with other professionals during the event?",
+    };
+    expect(isYesNoRatingQuestion(binaryQuestion)).toBe(true);
+    expect(isPercentageRatingQuestion(binaryQuestion)).toBe(false);
+    expect(
+      formatResponsePreview(binaryQuestion, { question_id: "q-binary", response_numeric: 5 })
+    ).toBe("Yes");
+    expect(
+      formatResponsePreview(binaryQuestion, { question_id: "q-binary", response_numeric: 1 })
+    ).toBe("No");
   });
 });

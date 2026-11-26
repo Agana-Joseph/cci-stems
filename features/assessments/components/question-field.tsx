@@ -51,19 +51,33 @@ const GENERIC_RATING_LABELS = new Set([
   "highest",
 ]);
 
+const YES_NO_QUESTION_PATTERN =
+  /^\s*(?:did|do|does|have|has|were|was|are|is)\s+(?:you|the|there|this)\b/i;
+
 export function formatRatingOptionLabel(label: string): string {
   const withoutPrefix = label.replace(/^\s*\d+\s*(?:—|–|-|:)\s*/, "");
   const primary = withoutPrefix.split(/\s*\/\s*/)[0] ?? withoutPrefix;
   return primary.trim();
 }
 
-export function isPercentageRatingQuestion(question: QuestionRead): boolean {
-  if (question.question_type !== "rating_scale") return false;
+function hasGenericRatingOptions(question: QuestionRead): boolean {
   const activeOptions = (question.options ?? []).filter((o) => o.is_active);
   if (activeOptions.length === 0) return true;
   return activeOptions.every((o) =>
     GENERIC_RATING_LABELS.has(formatRatingOptionLabel(o.option_label).toLowerCase())
   );
+}
+
+export function isYesNoRatingQuestion(question: QuestionRead): boolean {
+  if (question.question_type !== "rating_scale") return false;
+  if (!hasGenericRatingOptions(question)) return false;
+  return YES_NO_QUESTION_PATTERN.test(question.question_text ?? "");
+}
+
+export function isPercentageRatingQuestion(question: QuestionRead): boolean {
+  if (question.question_type !== "rating_scale") return false;
+  if (isYesNoRatingQuestion(question)) return false;
+  return hasGenericRatingOptions(question);
 }
 
 function getNearestPercentStepIndex(percent: number): number {
@@ -107,6 +121,9 @@ export function formatResponsePreview(
     case "rating_scale": {
       const min = typeof question.validation_config?.min === "number" ? question.validation_config.min : 1;
       const max = typeof question.validation_config?.max === "number" ? question.validation_config.max : 5;
+      if (isYesNoRatingQuestion(question)) {
+        return Number(value.response_numeric) > min ? "Yes" : "No";
+      }
       if (isPercentageRatingQuestion(question)) {
         if (typeof percentValue === "number") return `${percentValue}%`;
         const span = Math.max(1, max - min);
@@ -324,6 +341,34 @@ export function QuestionField({
         const span = Math.max(1, max - min);
         const hasValue =
           typeof current.response_numeric === "number" && !Number.isNaN(current.response_numeric);
+
+        if (isYesNoRatingQuestion(question)) {
+          return (
+            <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-labelledby={`${fieldId}-label`}>
+              {[
+                { label: "Yes", numericValue: max, isActive: hasValue && current.response_numeric! > min },
+                { label: "No", numericValue: min, isActive: hasValue && current.response_numeric! <= min },
+              ].map((choice) => (
+                <button
+                  key={choice.label}
+                  type="button"
+                  role="radio"
+                  aria-checked={choice.isActive}
+                  onClick={() => update({ response_numeric: choice.numericValue })}
+                  className={cn(
+                    "flex h-11 items-center justify-center rounded-lg border text-sm font-medium transition-colors focus-ring",
+                    choice.isActive
+                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                      : "border-border bg-card text-foreground hover:bg-muted/60"
+                  )}
+                >
+                  {choice.label}
+                </button>
+              ))}
+            </div>
+          );
+        }
+
         const usePercentage = isPercentageRatingQuestion(question);
 
         if (usePercentage) {
