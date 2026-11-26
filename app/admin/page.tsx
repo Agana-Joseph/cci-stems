@@ -45,6 +45,7 @@ import {
   useEventSubmissions,
 } from "@/hooks/use-admin-submissions";
 import { formatDateTime, formatPercent, formatScore, formatStageLabel } from "@/lib/utils/format";
+import { extractOverviewMetrics } from "@/lib/utils/overview-metrics";
 import { designTokens } from "@/styles/tokens";
 
 export default function AdminDashboardHomePage() {
@@ -57,15 +58,7 @@ export default function AdminDashboardHomePage() {
   const questionsQuery = useQuestions({ include_archived: false });
   const cardsQuery = useQuestionCards(true);
 
-  const part = overview.data?.participation;
-  const scores = overview.data?.impact_scores;
-  const fuSummary = overview.data?.follow_up_summary;
-
-  const totalRegistered = part?.total_registered ?? part?.registered_count ?? 0;
-  const confirmedAttendees = part?.confirmed_attendees ?? part?.attended_count ?? 0;
-  const completedAssessments =
-    part?.completed_assessments ?? part?.assessment_submissions_count ?? 0;
-  const pendingAssessments = Math.max(0, totalRegistered - completedAssessments);
+  const metrics = extractOverviewMetrics(overview.data);
 
   const pillarChartData = React.useMemo(
     () =>
@@ -151,54 +144,57 @@ export default function AdminDashboardHomePage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               <KpiCard
                 label="Registered"
-                value={totalRegistered}
+                value={metrics.totalRegistered}
                 subtitle="Total event roster"
-                sampleSize={totalRegistered}
-                coverageLevel={totalRegistered > 0 ? "high" : "none"}
+                sampleSize={metrics.totalRegistered}
+                coverageLevel={metrics.totalRegistered > 0 ? "high" : "none"}
                 icon={Users}
               />
               <KpiCard
                 label="Attendees"
-                value={confirmedAttendees}
-                subtitle={`Rate: ${formatPercent(part?.attendance_rate)}`}
-                sampleSize={confirmedAttendees}
-                coverageLevel={part?.data_coverage?.coverage_level}
+                value={metrics.confirmedAttendees}
+                subtitle={`Rate: ${formatPercent(metrics.attendanceRate)}`}
+                sampleSize={metrics.attendanceCoverage?.response_count ?? metrics.confirmedAttendees}
+                coverageLevel={
+                  metrics.attendanceCoverage?.coverage_level ??
+                  (metrics.confirmedAttendees > 0 ? "high" : "none")
+                }
                 icon={UserCheck}
               />
               <KpiCard
                 label="Completed"
-                value={completedAssessments}
-                subtitle={`Completion: ${formatPercent(part?.assessment_completion_rate)}`}
-                sampleSize={completedAssessments}
-                coverageLevel={part?.data_coverage?.coverage_level}
+                value={metrics.completedAssessments}
+                subtitle={`Completion: ${formatPercent(metrics.assessmentCompletionRate)}`}
+                sampleSize={metrics.assessmentCoverageCount}
+                coverageLevel={metrics.assessmentCoverage?.coverage_level}
                 icon={ClipboardCheck}
               />
               <KpiCard
                 label="Pending"
-                value={pendingAssessments}
+                value={metrics.pendingAssessments}
                 subtitle="Awaiting submission"
                 icon={Clock}
               />
               <KpiCard
                 label="Follow-Ups Done"
-                value={fuSummary?.total_completed ?? 0}
-                subtitle={`of ${fuSummary?.total_scheduled ?? 0} scheduled (${formatPercent(fuSummary?.completion_rate)})`}
+                value={metrics.followUpsCompleted}
+                subtitle={`of ${metrics.followUpsScheduled} scheduled (${formatPercent(metrics.followUpsCompletionRate)})`}
                 icon={CalendarClock}
               />
               <KpiCard
                 label="Overall Impact"
                 value={
-                  scores?.overall !== null && scores?.overall !== undefined
-                    ? formatScore(scores.overall, 1)
+                  metrics.overallImpact.average !== null
+                    ? formatScore(metrics.overallImpact.average, 1)
                     : "—"
                 }
                 subtitle={
-                  scores?.overall === null || scores?.overall === undefined
+                  metrics.overallImpact.average === null
                     ? "Insufficient scored data"
-                    : `n=${scores.participants_scored ?? 0} scored`
+                    : `n=${metrics.overallImpact.responseCount ?? 0} scored`
                 }
-                coverageLevel={scores?.data_coverage?.coverage_level}
-                sampleSize={scores?.participants_scored}
+                coverageLevel={metrics.overallImpact.coverageLevel}
+                sampleSize={metrics.overallImpact.responseCount}
                 icon={Award}
               />
             </div>

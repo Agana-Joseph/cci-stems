@@ -15,6 +15,7 @@ import { DataTable } from "@/components/tables/data-table";
 import { eventsApi, getReadableErrorMessage, scoringApi } from "@/lib/api";
 import { queryKeys, useEvent, useEventAnalyticsBundle } from "@/hooks/use-queries";
 import { formatDate, formatPercent, formatScore, maskPhoneNumber } from "@/lib/utils/format";
+import { extractOverviewMetrics } from "@/lib/utils/overview-metrics";
 import type { EventParticipantSummary } from "@/types/api";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -146,33 +147,40 @@ export default function AdminEventDetailPage() {
 
       {overview.isLoading ? (
         <CardGridSkeleton count={4} />
-      ) : overview.data ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard
-            label="Registered"
-            value={overview.data.participation.total_registered ?? overview.data.participation.registered_count ?? 0}
-            icon={Users}
-          />
-          <KpiCard
-            label="Attendance Rate"
-            value={formatPercent(overview.data.participation.attendance_rate)}
-            coverageLevel={overview.data.participation.data_coverage?.coverage_level}
-          />
-          <KpiCard
-            label="Assessment Rate"
-            value={formatPercent(overview.data.participation.assessment_completion_rate)}
-          />
-          <KpiCard
-            label="Overall Impact"
-            value={
-              overview.data.impact_scores.overall !== null
-                ? formatScore(overview.data.impact_scores.overall, 1)
-                : "—"
-            }
-            coverageLevel={overview.data.impact_scores.data_coverage?.coverage_level}
-          />
-        </div>
-      ) : null}
+      ) : overview.data ? (() => {
+        const metrics = extractOverviewMetrics(overview.data);
+        return (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <KpiCard
+              label="Registered"
+              value={metrics.totalRegistered}
+              icon={Users}
+            />
+            <KpiCard
+              label="Attendance Rate"
+              value={formatPercent(metrics.attendanceRate)}
+              coverageLevel={metrics.attendanceCoverage?.coverage_level}
+              sampleSize={metrics.attendanceCoverage?.response_count ?? metrics.confirmedAttendees}
+            />
+            <KpiCard
+              label="Assessment Rate"
+              value={formatPercent(metrics.assessmentCompletionRate)}
+              coverageLevel={metrics.assessmentCoverage?.coverage_level}
+              sampleSize={metrics.assessmentCoverageCount}
+            />
+            <KpiCard
+              label="Overall Impact"
+              value={
+                metrics.overallImpact.average !== null
+                  ? formatScore(metrics.overallImpact.average, 1)
+                  : "—"
+              }
+              coverageLevel={metrics.overallImpact.coverageLevel}
+              sampleSize={metrics.overallImpact.responseCount}
+            />
+          </div>
+        );
+      })() : null}
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">

@@ -25,6 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CoverageBadge, EmptyState } from "@/components/feedback/states";
 import { designTokens } from "@/styles/tokens";
 import { formatEnumLabel, formatStageLabel } from "@/lib/utils/format";
+import { extractOverviewMetrics } from "@/lib/utils/overview-metrics";
 import type {
   EventApplicationAnalytics,
   EventFollowUpsAnalytics,
@@ -77,14 +78,14 @@ export default function AnalyticsCharts({
   const hasAnyPillarScores = pillarData.some((p) => p.hasData);
 
   const scopeScoresData = React.useMemo(() => {
-    const sc = overview?.impact_scores;
-    if (!sc) return [];
+    if (!overview?.impact_scores) return [];
+    const m = extractOverviewMetrics(overview);
     return [
-      { label: "Immediate", score: sc.immediate },
-      { label: "Post-Event Application", score: sc.post_event_application },
-      { label: "Sustained", score: sc.sustained },
-      { label: "Overall", score: sc.overall },
-    ].filter((d) => d.score !== null && d.score !== undefined);
+      { label: "Immediate", score: m.immediateImpact.average },
+      { label: "Post-Event Application", score: m.applicationImpact.average },
+      { label: "Sustained", score: m.sustainedImpact.average },
+      { label: "Overall", score: m.overallImpact.average },
+    ].filter((d): d is { label: string; score: number } => d.score !== null && d.score !== undefined);
   }, [overview]);
 
   const actionsFunnelData = React.useMemo(() => {

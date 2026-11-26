@@ -30,6 +30,7 @@ import {
   formatPercent,
   formatScore,
 } from "@/lib/utils/format";
+import { extractOverviewMetrics } from "@/lib/utils/overview-metrics";
 import type { ExportFormat } from "@/types/api";
 
 export default function AdminReportsPage() {
@@ -192,7 +193,11 @@ export default function AdminReportsPage() {
                       </CardDescription>
                     </div>
                     <Badge variant="default">
-                      Overall Score: {formatScore(eventReportQuery.data.overview.impact_scores.overall, 1)}
+                      Overall Score:{" "}
+                      {formatScore(
+                        extractOverviewMetrics(eventReportQuery.data.overview).overallImpact.average,
+                        1
+                      )}
                     </Badge>
                   </div>
                 </CardHeader>

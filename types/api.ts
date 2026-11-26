@@ -673,25 +673,43 @@ export interface DataCoverage {
   coverage_level: CoverageLevel;
 }
 
+export interface ImpactScoreStat {
+  average: number | null;
+  median?: number | null;
+  std_dev?: number | null;
+  min?: number | null;
+  max?: number | null;
+  response_count?: number;
+  data_coverage?: DataCoverage;
+}
+
 export interface EventOverviewAnalytics {
   event_id?: string;
   participation: {
+    total_registered_participants?: number;
     total_registered?: number;
     registered_count?: number;
+    total_confirmed_attendees?: number;
     confirmed_attendees?: number;
     attended_count?: number;
     attendance_rate?: number | null;
     attendance_rate_reliable?: boolean;
+    assessment_respondents_count?: number;
     assessment_submissions_count?: number;
     completed_assessments?: number;
     assessment_completion_rate?: number | null;
+    assessment_data_coverage?: DataCoverage;
+    attendance_data_coverage?: DataCoverage;
     data_coverage?: DataCoverage;
   };
   impact_scores: {
-    overall: number | null;
-    immediate: number | null;
-    post_event_application: number | null;
-    sustained: number | null;
+    overall_event_impact?: ImpactScoreStat | number | null;
+    immediate_impact?: ImpactScoreStat | number | null;
+    post_event_application?: ImpactScoreStat | number | null;
+    sustained_impact?: ImpactScoreStat | number | null;
+    overall?: number | null;
+    immediate?: number | null;
+    sustained?: number | null;
     participants_scored?: number;
     score_status_breakdown?: Record<string, number>;
     data_coverage?: DataCoverage;

@@ -30,6 +30,7 @@ import {
 import { eventsApi, followupsApi, getReadableErrorMessage } from "@/lib/api";
 import { queryKeys, useEventAnalyticsBundle, useEvents } from "@/hooks/use-queries";
 import { formatDate, formatEnumLabel, formatPercent, formatStageLabel } from "@/lib/utils/format";
+import { extractOverviewMetrics } from "@/lib/utils/overview-metrics";
 import type { FollowUpRead, FollowUpStatus, VerificationStatus } from "@/types/api";
 
 export default function AdminFollowUpsPage() {
@@ -239,28 +240,29 @@ export default function AdminFollowUpsPage() {
             </div>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
-            <div className="rounded-lg border border-border bg-card p-3">
-              <span className="text-muted-foreground">Eligible Registered</span>
-              <p className="mt-1 text-lg font-bold">
-                {overview.data.participation.total_registered ??
-                  overview.data.participation.registered_count ??
-                  0}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-card p-3">
-              <span className="text-muted-foreground">Completed Immediate</span>
-              <p className="mt-1 text-lg font-bold text-emerald-700">
-                {overview.data.participation.completed_assessments ??
-                  overview.data.participation.assessment_submissions_count ??
-                  0}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-card p-3">
-              <span className="text-muted-foreground">Immediate Completion</span>
-              <p className="mt-1 text-lg font-bold">
-                {formatPercent(overview.data.participation.assessment_completion_rate)}
-              </p>
-            </div>
+            {(() => {
+              const m = extractOverviewMetrics(overview.data);
+              return (
+                <>
+                  <div className="rounded-lg border border-border bg-card p-3">
+                    <span className="text-muted-foreground">Eligible Registered</span>
+                    <p className="mt-1 text-lg font-bold">{m.totalRegistered}</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-card p-3">
+                    <span className="text-muted-foreground">Completed Immediate</span>
+                    <p className="mt-1 text-lg font-bold text-emerald-700">
+                      {m.completedAssessments}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-card p-3">
+                    <span className="text-muted-foreground">Immediate Completion</span>
+                    <p className="mt-1 text-lg font-bold">
+                      {formatPercent(m.assessmentCompletionRate)}
+                    </p>
+                  </div>
+                </>
+              );
+            })()}
             <div className="rounded-lg border border-border bg-card p-3">
               <span className="text-muted-foreground">Verified / Documented Outcomes</span>
               <p className="mt-1 text-lg font-bold">

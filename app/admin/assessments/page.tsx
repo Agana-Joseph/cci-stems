@@ -16,6 +16,7 @@ import { CardGridSkeleton, ErrorAlert } from "@/components/feedback/states";
 import { useEventAnalyticsBundle, useEvents, useQuestionnaires } from "@/hooks/use-queries";
 import { useEventSubmissions, type EnrichedSubmission } from "@/hooks/use-admin-submissions";
 import { formatDateTime, formatEnumLabel, formatPercent } from "@/lib/utils/format";
+import { extractOverviewMetrics } from "@/lib/utils/overview-metrics";
 
 export default function AdminAssessmentsPage() {
   const router = useRouter();
@@ -62,10 +63,9 @@ export default function AdminAssessmentsPage() {
     });
   }, [submissionsQuery.data, statusFilter, industryFilter, typeFilter, questionnaireMap]);
 
-  const part = overview.data?.participation;
-  const totalRegistered = part?.total_registered ?? part?.registered_count ?? 0;
-  const completed = part?.completed_assessments ?? part?.assessment_submissions_count ?? 0;
-  const pending = Math.max(0, totalRegistered - completed);
+  const metrics = extractOverviewMetrics(overview.data);
+  const completed = metrics.completedAssessments;
+  const pending = metrics.pendingAssessments;
 
   const columns: ColumnDef<EnrichedSubmission>[] = [
     {
@@ -190,9 +190,9 @@ export default function AdminAssessmentsPage() {
           <KpiCard label="Pending Assessments" value={pending} subtitle="Registered without submission" />
           <KpiCard
             label="Completion Rate"
-            value={formatPercent(part?.assessment_completion_rate)}
-            coverageLevel={part?.data_coverage?.coverage_level}
-            sampleSize={completed}
+            value={formatPercent(metrics.assessmentCompletionRate)}
+            coverageLevel={metrics.assessmentCoverage?.coverage_level}
+            sampleSize={metrics.assessmentCoverageCount}
           />
         </div>
       )}
