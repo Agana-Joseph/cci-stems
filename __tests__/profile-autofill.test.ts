@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildProfilePrefillMap,
+  extractProfileFromResponses,
   matchExperienceOption,
   matchIndustryOption,
 } from "@/features/assessments/utils/profile-autofill";
@@ -135,5 +136,59 @@ describe("profile-autofill", () => {
       response_text: "To connect and learn from peers.",
     });
     expect(prefilled["q25"]).toBeUndefined();
+  });
+
+  it("extracts participant details from Section A responses when profile draft is empty", () => {
+    const emptyProfile: ParticipantProfileDraft = {
+      full_name: "",
+      email: "",
+      phone: "",
+      current_role: "",
+      industry: "",
+      organisation: "",
+      years_of_experience: null,
+      reason_for_attending: "",
+    };
+
+    const sections = [
+      {
+        title: "Professional Background",
+        items: [
+          makeItem({ id: "q1", code: "full_name", question_text: "Full Name", question_type: "short_text" }),
+          makeItem({ id: "q2", code: "email_address", question_text: "Email Address", question_type: "email" }),
+          makeItem({ id: "q3", code: "active_phone", question_text: "Active Phone Number", question_type: "phone" }),
+          makeItem({ id: "q4", code: "current_role", question_text: "What is your current professional role?", question_type: "short_text" }),
+          makeItem({
+            id: "q5",
+            code: "industry",
+            question_text: "Which industry or professional sector do you work in?",
+            question_type: "single_choice",
+            allow_explanation: true,
+            options: industryOptions,
+          }),
+          makeItem({ id: "q6", code: "organisation", question_text: "What organisation or company do you currently work with?", question_type: "short_text" }),
+        ],
+      },
+    ];
+
+    const resolved = extractProfileFromResponses(
+      sections,
+      {
+        q1: { question_id: "q1", response_text: "Agana Onahi" },
+        q2: { question_id: "q2", response_text: "josephagana8@gmail.com" },
+        q3: { question_id: "q3", response_text: "+2348026596857" },
+        q4: { question_id: "q4", response_text: "Senior Engineer" },
+        q5: { question_id: "q5", response_text: "other", explanation_text: "JoJeGa" },
+        q6: { question_id: "q6", response_text: "JJ Concept" },
+      },
+      emptyProfile
+    );
+
+    expect(resolved.full_name).toBe("Agana Onahi");
+    expect(resolved.email).toBe("josephagana8@gmail.com");
+    expect(resolved.phone).toBe("+2348026596857");
+    expect(resolved.current_role).toBe("Senior Engineer");
+    expect(resolved.industry).toBe("JoJeGa");
+    expect(resolved.organisation).toBe("JJ Concept");
   });
 });

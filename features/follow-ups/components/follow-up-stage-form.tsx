@@ -56,6 +56,8 @@ export function FollowUpStageForm({ config }: { config: StageMetaConfig }) {
 
   const questionnaireQuery = useQuestionnaire(stageRecord?.questionnaire_id);
 
+  const storageKey = `cci_stem_followup_draft_${config.stageCode}`;
+  const [isHydrated, setIsHydrated] = React.useState(false);
   const [followUpId, setFollowUpId] = React.useState(initialFollowUpId);
   const [responses, setResponses] = React.useState<Record<string, AssessmentResponseInput>>({});
   const [actions, setActions] = React.useState<ActionDraft[]>([
@@ -65,6 +67,76 @@ export function FollowUpStageForm({ config }: { config: StageMetaConfig }) {
   const [outcomeDescription, setOutcomeDescription] = React.useState("");
   const [evidenceItems, setEvidenceItems] = React.useState<EvidenceDraft[]>([]);
   const [submitted, setSubmitted] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      setIsHydrated(true);
+      return;
+    }
+    try {
+      const raw = window.sessionStorage.getItem(storageKey);
+      if (raw) {
+        const draft = JSON.parse(raw) as {
+          followUpId?: string;
+          responses?: Record<string, AssessmentResponseInput>;
+          actions?: ActionDraft[];
+          outcomeType?: OutcomeType;
+          outcomeDescription?: string;
+          evidenceItems?: EvidenceDraft[];
+        };
+        if (!initialFollowUpId && typeof draft.followUpId === "string") {
+          setFollowUpId(draft.followUpId);
+        }
+        if (draft.responses && typeof draft.responses === "object") {
+          setResponses(draft.responses);
+        }
+        if (Array.isArray(draft.actions) && draft.actions.length > 0) {
+          setActions(draft.actions);
+        }
+        if (draft.outcomeType) {
+          setOutcomeType(draft.outcomeType);
+        }
+        if (typeof draft.outcomeDescription === "string") {
+          setOutcomeDescription(draft.outcomeDescription);
+        }
+        if (Array.isArray(draft.evidenceItems)) {
+          setEvidenceItems(draft.evidenceItems);
+        }
+      }
+    } catch {
+      // Ignore storage access errors
+    }
+    setIsHydrated(true);
+  }, [storageKey, initialFollowUpId]);
+
+  React.useEffect(() => {
+    if (!isHydrated || submitted || typeof window === "undefined") return;
+    try {
+      window.sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          followUpId,
+          responses,
+          actions,
+          outcomeType,
+          outcomeDescription,
+          evidenceItems,
+        })
+      );
+    } catch {
+      // Ignore storage quota errors
+    }
+  }, [
+    isHydrated,
+    submitted,
+    storageKey,
+    followUpId,
+    responses,
+    actions,
+    outcomeType,
+    outcomeDescription,
+    evidenceItems,
+  ]);
 
   const submitMutation = useMutation({
     mutationFn: async () => {
@@ -116,6 +188,13 @@ export function FollowUpStageForm({ config }: { config: StageMetaConfig }) {
       });
     },
     onSuccess: () => {
+      if (typeof window !== "undefined") {
+        try {
+          window.sessionStorage.removeItem(storageKey);
+        } catch {
+          // Ignore storage access errors
+        }
+      }
       setSubmitted(true);
       toast.success(`${config.title} submitted successfully.`);
     },

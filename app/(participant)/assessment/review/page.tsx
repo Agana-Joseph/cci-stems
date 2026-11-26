@@ -13,30 +13,66 @@ import {
   isQuestionAnswered,
 } from "@/features/assessments/components/question-field";
 import { useAssessmentContext } from "@/features/assessments/context/assessment-context";
-import { useQuestionCards, useQuestionnaire } from "@/hooks/use-queries";
+import { extractProfileFromResponses } from "@/features/assessments/utils/profile-autofill";
+import { useEvents, useQuestionCards, useQuestionnaire, useQuestionnaires } from "@/hooks/use-queries";
 import { assessmentsApi, getReadableErrorMessage } from "@/lib/api";
 import { formatSectionTitle } from "@/lib/utils/format";
+import type { ProfileUpdatesInput } from "@/types/api";
 
 export default function AssessmentReviewPage() {
   const router = useRouter();
   const {
+    isHydrated,
     eventId,
+    setEventId,
     questionnaireId,
+    setQuestionnaireId,
     phone,
     email,
     profile,
     startedAt,
     responses,
     ratingPercentages,
+    consentChecked,
+    setConsentChecked,
     setTargetSectionIndex,
     submission,
     setSubmission,
-    getProfileUpdatesPayload,
   } = useAssessmentContext();
 
-  const [consentChecked, setConsentChecked] = React.useState(false);
+  const eventsQuery = useEvents({ limit: 20 });
+  const effectiveEventId = eventId ?? eventsQuery.data?.[0]?.id ?? null;
 
-  const questionnaireQuery = useQuestionnaire(questionnaireId);
+  React.useEffect(() => {
+    if (isHydrated && !eventId && effectiveEventId) {
+      setEventId(effectiveEventId);
+    }
+  }, [isHydrated, eventId, effectiveEventId, setEventId]);
+
+  const questionnairesQuery = useQuestionnaires({
+    event_id: effectiveEventId ?? undefined,
+    status: "published",
+    questionnaire_type: "post_event",
+  });
+  const fallbackQuestionnairesQuery = useQuestionnaires({ status: "published" });
+
+  const resolvedQuestionnaireId = React.useMemo(() => {
+    if (questionnaireId) return questionnaireId;
+    const primary = questionnairesQuery.data ?? [];
+    if (primary.length > 0) return primary[0]!.id;
+    const fallback = (fallbackQuestionnairesQuery.data ?? []).filter(
+      (q) => q.questionnaire_type === "post_event" || q.questionnaire_type === "custom"
+    );
+    return fallback[0]?.id ?? fallbackQuestionnairesQuery.data?.[0]?.id ?? null;
+  }, [questionnaireId, questionnairesQuery.data, fallbackQuestionnairesQuery.data]);
+
+  React.useEffect(() => {
+    if (isHydrated && resolvedQuestionnaireId && questionnaireId !== resolvedQuestionnaireId) {
+      setQuestionnaireId(resolvedQuestionnaireId);
+    }
+  }, [isHydrated, resolvedQuestionnaireId, questionnaireId, setQuestionnaireId]);
+
+  const questionnaireQuery = useQuestionnaire(resolvedQuestionnaireId);
   const cardsQuery = useQuestionCards(false);
 
   const sections = React.useMemo(() => {
@@ -61,6 +97,11 @@ export default function AssessmentReviewPage() {
       .filter((g) => g.items.length > 0);
   }, [questionnaireQuery.data]);
 
+  const resolvedProfile = React.useMemo(
+    () => extractProfileFromResponses(sections, responses, profile, { phone, email }),
+    [sections, responses, profile, phone, email]
+  );
+
   const cardQuestions = React.useMemo(() => {
     const existingIds = new Set((questionnaireQuery.data?.questions ?? []).map((q) => q.question.id));
     return (cardsQuery.data ?? [])
@@ -70,11 +111,11 @@ export default function AssessmentReviewPage() {
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      if (!eventId || !questionnaireId) {
+      if (!effectiveEventId || !resolvedQuestionnaireId) {
         throw new Error("Missing event or questionnaire context. Please start from the welcome page.");
       }
-      const contactPhone = (profile.phone || phone).trim() || undefined;
-      const contactEmail = (profile.email || email).trim() || undefined;
+      const contactPhone = resolvedProfile.phone.trim() || undefined;
+      const contactEmail = resolvedProfile.email.trim() || undefined;
       if (!contactPhone && !contactEmail) {
         throw new Error("Please enter your registered phone number or email address before submitting.");
       }
@@ -89,14 +130,34 @@ export default function AssessmentReviewPage() {
         .filter(({ q, val }) => isQuestionAnswered(q, val))
         .map(({ val }) => val!);
 
+      const profileUpdates: ProfileUpdatesInput = { consent_given: consentChecked };
+      if (resolvedProfile.full_name.trim()) {
+        profileUpdates.full_name = resolvedProfile.full_name.trim();
+      }
+      if (resolvedProfile.current_role.trim()) {
+        profileUpdates.current_role = resolvedProfile.current_role.trim();
+      }
+      if (resolvedProfile.industry.trim()) {
+        profileUpdates.industry = resolvedProfile.industry.trim();
+      }
+      if (resolvedProfile.organisation.trim()) {
+        profileUpdates.organisation = resolvedProfile.organisation.trim();
+      }
+      if (resolvedProfile.years_of_experience !== null) {
+        profileUpdates.years_of_experience = resolvedProfile.years_of_experience;
+      }
+      if (resolvedProfile.reason_for_attending.trim()) {
+        profileUpdates.reason_for_attending = resolvedProfile.reason_for_attending.trim();
+      }
+
       return assessmentsApi.submit({
         phone: contactPhone,
         email: contactEmail,
-        event_id: eventId,
-        questionnaire_id: questionnaireId,
+        event_id: effectiveEventId,
+        questionnaire_id: resolvedQuestionnaireId,
         submission_channel: "web_portal",
         started_at: startedAt,
-        profile_updates: getProfileUpdatesPayload(consentChecked),
+        profile_updates: profileUpdates,
         responses: validResponses,
       });
     },
@@ -111,6 +172,11 @@ export default function AssessmentReviewPage() {
   });
 
   const alreadySubmitted = Boolean(submission);
+  const hasAnySessionData =
+    Boolean(resolvedProfile.full_name) ||
+    Boolean(resolvedProfile.email) ||
+    Boolean(resolvedProfile.phone) ||
+    Object.keys(responses).length > 0;
 
   return (
     <div className="space-y-6">
@@ -125,6 +191,20 @@ export default function AssessmentReviewPage() {
           Confirm your details and responses below before submitting. You can edit any section.
         </p>
       </div>
+
+      {isHydrated && !hasAnySessionData && !alreadySubmitted && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          No active assessment responses were found in this browser tab.{" "}
+          <button
+            type="button"
+            onClick={() => router.push("/assessment")}
+            className="font-semibold underline"
+          >
+            Start or resume from the assessment welcome page
+          </button>
+          .
+        </div>
+      )}
 
       {/* Profile Summary */}
       <Card>
@@ -146,24 +226,25 @@ export default function AssessmentReviewPage() {
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-xs text-muted-foreground">Full Name</dt>
-              <dd className="font-medium">{profile.full_name || "—"}</dd>
+              <dd className="font-medium">{resolvedProfile.full_name || "—"}</dd>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">Registered Contact</dt>
               <dd className="font-medium">
-                {[profile.phone || phone, profile.email || email].filter(Boolean).join(" · ") ||
-                  "—"}
+                {[resolvedProfile.phone, resolvedProfile.email].filter(Boolean).join(" · ") || "—"}
               </dd>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">Role &amp; Industry</dt>
               <dd className="font-medium">
-                {[profile.current_role, profile.industry].filter(Boolean).join(" — ") || "—"}
+                {[resolvedProfile.current_role, resolvedProfile.industry]
+                  .filter(Boolean)
+                  .join(" — ") || "—"}
               </dd>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">Organisation</dt>
-              <dd className="font-medium">{profile.organisation || "—"}</dd>
+              <dd className="font-medium">{resolvedProfile.organisation || "—"}</dd>
             </div>
           </dl>
         </CardContent>

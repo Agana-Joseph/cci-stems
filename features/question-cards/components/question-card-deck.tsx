@@ -17,13 +17,17 @@ interface DeckItem {
 export function QuestionCardDeck({
   cards,
   responses,
+  ratingPercentages,
   onResponseChange,
+  onPercentChange,
   onBack,
   onComplete,
 }: {
   cards: QuestionCardRead[];
   responses: Record<string, AssessmentResponseInput>;
+  ratingPercentages?: Record<string, number>;
   onResponseChange: (questionId: string, next: AssessmentResponseInput) => void;
+  onPercentChange?: (questionId: string, percent: number) => void;
   onBack: () => void;
   onComplete: () => void;
 }) {
@@ -104,7 +108,13 @@ export function QuestionCardDeck({
             question={activeItem.question}
             required={activeItem.question.is_required}
             value={responses[activeItem.question.id]}
+            percentValue={ratingPercentages?.[activeItem.question.id]}
             onChange={(next) => onResponseChange(activeItem.question.id, next)}
+            onPercentChange={
+              onPercentChange
+                ? (pct) => onPercentChange(activeItem.question.id, pct)
+                : undefined
+            }
           />
           {!activeItem.question.is_scorable && (
             <p className="text-xs text-muted-foreground">

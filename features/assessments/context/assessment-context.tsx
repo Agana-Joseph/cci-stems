@@ -19,6 +19,7 @@ export interface ParticipantProfileDraft {
 }
 
 interface AssessmentContextValue {
+  isHydrated: boolean;
   eventId: string | null;
   setEventId: (id: string | null) => void;
   questionnaireId: string | null;
@@ -28,8 +29,10 @@ interface AssessmentContextValue {
   lookupCompleted: boolean;
   lookupMessage: string | null;
   setIdentification: (data: { phone: string; email: string; message?: string }) => void;
+  updateContactDraft: (data: { phone?: string; email?: string }) => void;
   profile: ParticipantProfileDraft;
   setProfile: (profile: ParticipantProfileDraft) => void;
+  updateProfileDraft: (patch: Partial<ParticipantProfileDraft>) => void;
   startedAt: string;
   responses: Record<string, AssessmentResponseInput>;
   setResponse: (questionId: string, response: AssessmentResponseInput) => void;
@@ -38,6 +41,12 @@ interface AssessmentContextValue {
   setRatingPercentage: (questionId: string, percent: number) => void;
   introSeen: boolean;
   setIntroSeen: (seen: boolean) => void;
+  currentSectionIndex: number;
+  setCurrentSectionIndex: React.Dispatch<React.SetStateAction<number>>;
+  inCardsPhase: boolean;
+  setInCardsPhase: React.Dispatch<React.SetStateAction<boolean>>;
+  consentChecked: boolean;
+  setConsentChecked: (checked: boolean) => void;
   targetSectionIndex: number | null;
   setTargetSectionIndex: (idx: number | null) => void;
   submission: AssessmentSubmissionRead | null;
@@ -59,14 +68,83 @@ const initialProfile: ParticipantProfileDraft = {
 
 const AssessmentContext = React.createContext<AssessmentContextValue | null>(null);
 
+const SESSION_STORAGE_KEY = "cci_stem_assessment_draft_v1";
+
+interface PersistedAssessmentDraft {
+  eventId: string | null;
+  questionnaireId: string | null;
+  phone: string;
+  email: string;
+  lookupCompleted: boolean;
+  lookupMessage: string | null;
+  profile: ParticipantProfileDraft;
+  startedAt: string;
+  responses: Record<string, AssessmentResponseInput>;
+  ratingPercentages: Record<string, number>;
+  editedQuestionIds: string[];
+  introSeen: boolean;
+  currentSectionIndex: number;
+  inCardsPhase: boolean;
+  consentChecked: boolean;
+}
+
+function readDraftFromSession(): PersistedAssessmentDraft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PersistedAssessmentDraft>;
+    if (!parsed || typeof parsed !== "object") return null;
+    return {
+      eventId: typeof parsed.eventId === "string" ? parsed.eventId : null,
+      questionnaireId: typeof parsed.questionnaireId === "string" ? parsed.questionnaireId : null,
+      phone: typeof parsed.phone === "string" ? parsed.phone : "",
+      email: typeof parsed.email === "string" ? parsed.email : "",
+      lookupCompleted: Boolean(parsed.lookupCompleted),
+      lookupMessage: typeof parsed.lookupMessage === "string" ? parsed.lookupMessage : null,
+      profile: {
+        ...initialProfile,
+        ...(parsed.profile && typeof parsed.profile === "object" ? parsed.profile : {}),
+      },
+      startedAt: typeof parsed.startedAt === "string" ? parsed.startedAt : new Date().toISOString(),
+      responses:
+        parsed.responses && typeof parsed.responses === "object" ? parsed.responses : {},
+      ratingPercentages:
+        parsed.ratingPercentages && typeof parsed.ratingPercentages === "object"
+          ? parsed.ratingPercentages
+          : {},
+      editedQuestionIds: Array.isArray(parsed.editedQuestionIds) ? parsed.editedQuestionIds : [],
+      introSeen: Boolean(parsed.introSeen),
+      currentSectionIndex:
+        typeof parsed.currentSectionIndex === "number" && parsed.currentSectionIndex >= 0
+          ? parsed.currentSectionIndex
+          : 0,
+      inCardsPhase: Boolean(parsed.inCardsPhase),
+      consentChecked: Boolean(parsed.consentChecked),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function clearDraftFromSession(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {
+    // Ignore storage access errors in restricted browsing modes
+  }
+}
+
 /**
- * Strictly in-memory participant assessment context.
+ * Participant assessment context with tab-scoped sessionStorage draft recovery.
  * @author JoJeGa
- * Intentionally avoids localStorage/sessionStorage so sensitive participant contact
- * info and responses are never persisted in browser storage.
+ * Keeps in-progress assessment data alive across reloads/deployments within the active
+ * browser tab only, and clears it immediately upon submission or session reset.
  */
 export const ASSESSMENT_MODULE_MARK = "JoJeGa" as const;
 export function AssessmentProvider({ children }: { children: React.ReactNode }) {
+  const [isHydrated, setIsHydrated] = React.useState(false);
   const [eventId, setEventId] = React.useState<string | null>(null);
   const [questionnaireId, setQuestionnaireId] = React.useState<string | null>(null);
   const [phone, setPhone] = React.useState("");
@@ -79,8 +157,108 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
   const [ratingPercentages, setRatingPercentages] = React.useState<Record<string, number>>({});
   const editedQuestionIdsRef = React.useRef<Set<string>>(new Set());
   const [introSeen, setIntroSeen] = React.useState(false);
+  const [currentSectionIndex, setCurrentSectionIndex] = React.useState(0);
+  const [inCardsPhase, setInCardsPhase] = React.useState(false);
+  const [consentChecked, setConsentChecked] = React.useState(false);
   const [targetSectionIndex, setTargetSectionIndex] = React.useState<number | null>(null);
-  const [submission, setSubmission] = React.useState<AssessmentSubmissionRead | null>(null);
+  const [submission, setSubmissionState] = React.useState<AssessmentSubmissionRead | null>(null);
+
+  React.useEffect(() => {
+    const draft = readDraftFromSession();
+    if (draft) {
+      setEventId(draft.eventId);
+      setQuestionnaireId(draft.questionnaireId);
+      setPhone(draft.phone);
+      setEmail(draft.email);
+      setLookupCompleted(draft.lookupCompleted);
+      setLookupMessage(draft.lookupMessage);
+      setProfile(draft.profile);
+      setStartedAt(draft.startedAt);
+      setResponses(draft.responses);
+      setRatingPercentages(draft.ratingPercentages);
+      editedQuestionIdsRef.current = new Set(draft.editedQuestionIds);
+      setIntroSeen(draft.introSeen);
+      setCurrentSectionIndex(draft.currentSectionIndex);
+      setInCardsPhase(draft.inCardsPhase);
+      setConsentChecked(draft.consentChecked);
+    }
+    setIsHydrated(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!isHydrated || submission || typeof window === "undefined") return;
+    const hasDraftData =
+      Boolean(eventId) ||
+      Boolean(questionnaireId) ||
+      Boolean(phone) ||
+      Boolean(email) ||
+      lookupCompleted ||
+      Boolean(profile.full_name) ||
+      Boolean(profile.email) ||
+      Boolean(profile.phone) ||
+      Boolean(profile.current_role) ||
+      Boolean(profile.industry) ||
+      Boolean(profile.organisation) ||
+      profile.years_of_experience !== null ||
+      Boolean(profile.reason_for_attending) ||
+      Object.keys(responses).length > 0 ||
+      introSeen ||
+      currentSectionIndex > 0 ||
+      inCardsPhase ||
+      consentChecked;
+
+    if (!hasDraftData) {
+      clearDraftFromSession();
+      return;
+    }
+
+    try {
+      const payload: PersistedAssessmentDraft = {
+        eventId,
+        questionnaireId,
+        phone,
+        email,
+        lookupCompleted,
+        lookupMessage,
+        profile,
+        startedAt,
+        responses,
+        ratingPercentages,
+        editedQuestionIds: Array.from(editedQuestionIdsRef.current),
+        introSeen,
+        currentSectionIndex,
+        inCardsPhase,
+        consentChecked,
+      };
+      window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
+    } catch {
+      // Ignore storage quota / private mode errors
+    }
+  }, [
+    isHydrated,
+    submission,
+    eventId,
+    questionnaireId,
+    phone,
+    email,
+    lookupCompleted,
+    lookupMessage,
+    profile,
+    startedAt,
+    responses,
+    ratingPercentages,
+    introSeen,
+    currentSectionIndex,
+    inCardsPhase,
+    consentChecked,
+  ]);
+
+  const setSubmission = React.useCallback((sub: AssessmentSubmissionRead | null) => {
+    setSubmissionState(sub);
+    if (sub) {
+      clearDraftFromSession();
+    }
+  }, []);
 
   const setIdentification = React.useCallback(
     (data: { phone: string; email: string; message?: string }) => {
@@ -96,6 +274,33 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
     },
     []
   );
+
+  const updateContactDraft = React.useCallback((data: { phone?: string; email?: string }) => {
+    if (data.phone !== undefined) {
+      setPhone(data.phone);
+    }
+    if (data.email !== undefined) {
+      setEmail(data.email);
+    }
+    setProfile((prev) => ({
+      ...prev,
+      ...(data.phone !== undefined ? { phone: data.phone } : {}),
+      ...(data.email !== undefined ? { email: data.email } : {}),
+    }));
+  }, []);
+
+  const updateProfileDraft = React.useCallback((patch: Partial<ParticipantProfileDraft>) => {
+    if (patch.phone !== undefined) {
+      setPhone(patch.phone);
+    }
+    if (patch.email !== undefined) {
+      setEmail(patch.email);
+    }
+    setProfile((prev) => ({
+      ...prev,
+      ...patch,
+    }));
+  }, []);
 
   const setResponse = React.useCallback((questionId: string, response: AssessmentResponseInput) => {
     editedQuestionIdsRef.current.add(questionId);
@@ -155,6 +360,7 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
   );
 
   const resetSession = React.useCallback(() => {
+    clearDraftFromSession();
     setPhone("");
     setEmail("");
     setLookupCompleted(false);
@@ -165,12 +371,16 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
     setResponses({});
     setRatingPercentages({});
     setIntroSeen(false);
+    setCurrentSectionIndex(0);
+    setInCardsPhase(false);
+    setConsentChecked(false);
     setTargetSectionIndex(null);
-    setSubmission(null);
+    setSubmissionState(null);
   }, []);
 
   const value = React.useMemo<AssessmentContextValue>(
     () => ({
+      isHydrated,
       eventId,
       setEventId,
       questionnaireId,
@@ -180,8 +390,10 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       lookupCompleted,
       lookupMessage,
       setIdentification,
+      updateContactDraft,
       profile,
       setProfile,
+      updateProfileDraft,
       startedAt,
       responses,
       setResponse,
@@ -190,6 +402,12 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       setRatingPercentage,
       introSeen,
       setIntroSeen,
+      currentSectionIndex,
+      setCurrentSectionIndex,
+      inCardsPhase,
+      setInCardsPhase,
+      consentChecked,
+      setConsentChecked,
       targetSectionIndex,
       setTargetSectionIndex,
       submission,
@@ -198,6 +416,7 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       resetSession,
     }),
     [
+      isHydrated,
       eventId,
       questionnaireId,
       phone,
@@ -205,7 +424,9 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       lookupCompleted,
       lookupMessage,
       setIdentification,
+      updateContactDraft,
       profile,
+      updateProfileDraft,
       startedAt,
       responses,
       setResponse,
@@ -213,8 +434,12 @@ export function AssessmentProvider({ children }: { children: React.ReactNode }) 
       ratingPercentages,
       setRatingPercentage,
       introSeen,
+      currentSectionIndex,
+      inCardsPhase,
+      consentChecked,
       targetSectionIndex,
       submission,
+      setSubmission,
       getProfileUpdatesPayload,
       resetSession,
     ]

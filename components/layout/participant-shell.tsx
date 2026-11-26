@@ -61,7 +61,7 @@ export function ParticipantShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="h-4 w-4 text-primary" />
             <span>
-              Responses are transmitted securely and are not persisted in browser storage.
+              Responses are transmitted securely and cleared automatically upon submission.
             </span>
           </div>
           <span>

@@ -407,3 +407,80 @@ export function buildProfilePrefillMap(
 
   return prefilled;
 }
+
+export function extractProfileFromResponses(
+  sections: SectionLike[],
+  responses: Record<string, AssessmentResponseInput>,
+  baseProfile: ParticipantProfileDraft,
+  contact?: ContactFallback
+): ParticipantProfileDraft {
+  const resolved: ParticipantProfileDraft = {
+    ...baseProfile,
+    email: baseProfile.email || contact?.email || "",
+    phone: baseProfile.phone || contact?.phone || "",
+  };
+
+  sections.forEach((section, index) => {
+    const isTargetSection = index === 0 || BACKGROUND_SECTION_PATTERN.test(section.title);
+    if (!isTargetSection) return;
+
+    section.items.forEach((item) => {
+      const q = item.question;
+      const resp = responses[q.id];
+      if (!resp) return;
+      const field = detectProfileField(q);
+      if (!field) return;
+
+      const textVal = typeof resp.response_text === "string" ? resp.response_text.trim() : "";
+
+      switch (field) {
+        case "full_name":
+          if (textVal) resolved.full_name = textVal;
+          break;
+        case "email":
+          if (textVal) resolved.email = textVal;
+          break;
+        case "phone":
+          if (textVal) resolved.phone = textVal;
+          break;
+        case "current_role":
+          if (textVal) resolved.current_role = textVal;
+          break;
+        case "organisation":
+          if (textVal) resolved.organisation = textVal;
+          break;
+        case "reason_for_attending":
+          if (textVal) resolved.reason_for_attending = textVal;
+          break;
+        case "industry": {
+          if (q.question_type === "single_choice" && textVal) {
+            const matchedOpt = (q.options ?? []).find((o) => o.option_value === textVal);
+            if (matchedOpt && isOtherOption(matchedOpt)) {
+              const custom = resp.explanation_text?.trim();
+              if (custom) resolved.industry = custom;
+              else if (!resolved.industry) resolved.industry = matchedOpt.option_label;
+            } else if (matchedOpt) {
+              resolved.industry = matchedOpt.option_label;
+            } else {
+              resolved.industry = textVal;
+            }
+          } else if (textVal) {
+            resolved.industry = textVal;
+          }
+          break;
+        }
+        case "years_of_experience":
+          if (
+            resolved.years_of_experience === null &&
+            typeof resp.response_numeric === "number" &&
+            !Number.isNaN(resp.response_numeric)
+          ) {
+            resolved.years_of_experience = resp.response_numeric;
+          }
+          break;
+      }
+    });
+  });
+
+  return resolved;
+}

@@ -16,8 +16,16 @@ type ProfileFormValues = z.infer<typeof participantProfileSchema>;
 
 export default function AssessmentProfilePage() {
   const router = useRouter();
-  const { phone, email, lookupCompleted, lookupMessage, profile, setProfile } =
-    useAssessmentContext();
+  const {
+    isHydrated,
+    phone,
+    email,
+    lookupCompleted,
+    lookupMessage,
+    profile,
+    updateProfileDraft,
+  } = useAssessmentContext();
+  const didSyncHydratedRef = React.useRef(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(participantProfileSchema),
@@ -34,12 +42,57 @@ export default function AssessmentProfilePage() {
     },
   });
 
+  const syncFormToDraft = React.useCallback(
+    (values: Partial<ProfileFormValues>) => {
+      const rawYoe = values.years_of_experience?.trim() ?? "";
+      const parsedYoe = rawYoe === "" ? null : Number.parseInt(rawYoe, 10);
+      updateProfileDraft({
+        full_name: values.full_name ?? "",
+        email: values.email ?? "",
+        phone: values.phone ?? "",
+        current_role: values.current_role ?? "",
+        industry: values.industry ?? "",
+        organisation: values.organisation ?? "",
+        years_of_experience: parsedYoe !== null && !Number.isNaN(parsedYoe) ? parsedYoe : null,
+        reason_for_attending: values.reason_for_attending ?? "",
+      });
+    },
+    [updateProfileDraft]
+  );
+
+  React.useEffect(() => {
+    if (!isHydrated || didSyncHydratedRef.current) return;
+    didSyncHydratedRef.current = true;
+    if (!form.formState.isDirty) {
+      form.reset({
+        full_name: profile.full_name,
+        email: profile.email || email,
+        phone: profile.phone || phone,
+        current_role: profile.current_role,
+        industry: profile.industry,
+        organisation: profile.organisation,
+        years_of_experience:
+          profile.years_of_experience !== null ? String(profile.years_of_experience) : "",
+        reason_for_attending: profile.reason_for_attending,
+      });
+    }
+  }, [isHydrated, profile, email, phone, form]);
+
+  React.useEffect(() => {
+    if (!isHydrated) return;
+    const subscription = form.watch((values, { type }) => {
+      if (type !== "change") return;
+      syncFormToDraft(values);
+    });
+    return () => subscription.unsubscribe();
+  }, [isHydrated, form, syncFormToDraft]);
+
   const onSubmit = (values: ProfileFormValues) => {
     const parsedYoe =
       values.years_of_experience && values.years_of_experience.trim() !== ""
         ? Number.parseInt(values.years_of_experience, 10)
         : null;
-    setProfile({
+    const nextProfile = {
       full_name: values.full_name,
       email: values.email || email,
       phone: values.phone || phone,
@@ -48,7 +101,8 @@ export default function AssessmentProfilePage() {
       organisation: values.organisation || "",
       years_of_experience: parsedYoe !== null && !Number.isNaN(parsedYoe) ? parsedYoe : null,
       reason_for_attending: values.reason_for_attending || "",
-    });
+    };
+    updateProfileDraft(nextProfile);
     router.push("/assessment/questions");
   };
 
@@ -211,7 +265,10 @@ export default function AssessmentProfilePage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.push("/assessment/verify")}
+                onClick={() => {
+                  syncFormToDraft(form.getValues());
+                  router.push("/assessment/verify");
+                }}
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back

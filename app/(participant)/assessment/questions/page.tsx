@@ -35,6 +35,7 @@ interface SectionGroup {
 export default function AssessmentQuestionsPage() {
   const router = useRouter();
   const {
+    isHydrated,
     eventId,
     setEventId,
     questionnaireId,
@@ -49,6 +50,10 @@ export default function AssessmentQuestionsPage() {
     setRatingPercentage,
     introSeen,
     setIntroSeen,
+    currentSectionIndex: sectionIndex,
+    setCurrentSectionIndex: setSectionIndex,
+    inCardsPhase,
+    setInCardsPhase,
     targetSectionIndex,
     setTargetSectionIndex,
   } = useAssessmentContext();
@@ -161,13 +166,11 @@ export default function AssessmentQuestionsPage() {
   );
 
   React.useEffect(() => {
-    if (Object.keys(profilePrefills).length > 0) {
+    if (isHydrated && Object.keys(profilePrefills).length > 0) {
       prefillResponses(profilePrefills);
     }
-  }, [profilePrefills, prefillResponses]);
+  }, [isHydrated, profilePrefills, prefillResponses]);
 
-  const [sectionIndex, setSectionIndex] = React.useState(0);
-  const [inCardsPhase, setInCardsPhase] = React.useState(false);
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
@@ -181,7 +184,14 @@ export default function AssessmentQuestionsPage() {
       }
       setTargetSectionIndex(null);
     }
-  }, [targetSectionIndex, sectionGroups.length, setIntroSeen, setTargetSectionIndex]);
+  }, [
+    targetSectionIndex,
+    sectionGroups.length,
+    setIntroSeen,
+    setInCardsPhase,
+    setSectionIndex,
+    setTargetSectionIndex,
+  ]);
 
   const totalQuestions = React.useMemo(
     () => sectionGroups.reduce((sum, g) => sum + g.items.length, 0),
@@ -255,7 +265,9 @@ export default function AssessmentQuestionsPage() {
       <QuestionCardDeck
         cards={standaloneCards}
         responses={responses}
+        ratingPercentages={ratingPercentages}
         onResponseChange={setResponse}
+        onPercentChange={setRatingPercentage}
         onBack={() => {
           setInCardsPhase(false);
           setSectionIndex(sectionGroups.length - 1);

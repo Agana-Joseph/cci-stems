@@ -19,17 +19,42 @@ type VerifyFormValues = z.infer<typeof participantVerifySchema>;
 
 export default function AssessmentVerifyPage() {
   const router = useRouter();
-  const { eventId, phone, email, setIdentification } = useAssessmentContext();
+  const { isHydrated, eventId, phone, email, profile, setIdentification, updateContactDraft } =
+    useAssessmentContext();
   const [otpPending, setOtpPending] = React.useState(false);
   const [otpNotice, setOtpNotice] = React.useState<string | null>(null);
+  const didSyncHydratedRef = React.useRef(false);
 
   const form = useForm<VerifyFormValues>({
     resolver: zodResolver(participantVerifySchema),
     defaultValues: {
-      phone: phone || "",
-      email: email || "",
+      phone: profile.phone || phone || "",
+      email: profile.email || email || "",
     },
   });
+
+  React.useEffect(() => {
+    if (!isHydrated || didSyncHydratedRef.current) return;
+    didSyncHydratedRef.current = true;
+    if (!form.formState.isDirty) {
+      form.reset({
+        phone: profile.phone || phone || "",
+        email: profile.email || email || "",
+      });
+    }
+  }, [isHydrated, profile.phone, profile.email, phone, email, form]);
+
+  React.useEffect(() => {
+    if (!isHydrated) return;
+    const subscription = form.watch((values, { type }) => {
+      if (type !== "change") return;
+      updateContactDraft({
+        phone: values.phone ?? "",
+        email: values.email ?? "",
+      });
+    });
+    return () => subscription.unsubscribe();
+  }, [isHydrated, form, updateContactDraft]);
 
   const lookupMutation = useMutation({
     mutationFn: async (values: VerifyFormValues) => {
@@ -158,7 +183,18 @@ export default function AssessmentVerifyPage() {
             </div>
 
             <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-between">
-              <Button type="button" variant="outline" onClick={() => router.push("/assessment")}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  const current = form.getValues();
+                  updateContactDraft({
+                    phone: current.phone ?? "",
+                    email: current.email ?? "",
+                  });
+                  router.push("/assessment");
+                }}
+              >
                 <ArrowLeft className="h-4 w-4" />
                 Back
               </Button>
